@@ -12,9 +12,9 @@ class MLP(Network):
     self.device_type = device_type
 
     if not pretrained:
-      mlp_model_config = kwargs.get("mlp_model_config")
-      self.checkConfig(model_config=mlp_model_config)
-      self.layers = self.buildLayers(mlp_model_config=mlp_model_config, input_feature_count=kwargs.get("input_feature_count"))
+      mlp_architecture = kwargs.get("mlp_architecture")
+      self.checkConfig(architecture=mlp_architecture)
+      self.layers = self.buildLayers(mlp_architecture=mlp_architecture, input_feature_count=kwargs.get("input_feature_count") or mlp_architecture.get("input_data_dim"))
     else:
       self.layers = self.loadLayers(mlp_model_params=kwargs.get("mlp_model_params"))
 
@@ -23,7 +23,8 @@ class MLP(Network):
     if training and self.optimizer:
       self.setOptimizer()
 
-
+    if not self.layers:
+      raise ValueError("Layers are uninitialized!")
 
 
 
@@ -40,10 +41,10 @@ class MLP(Network):
     return layers
 
 
-  def buildLayers(self, mlp_model_config, input_feature_count):
+  def buildLayers(self, mlp_architecture, input_feature_count):
 
-    neuron_counts = mlp_model_config.get("neuron_counts")
-    activation_functions = mlp_model_config.get("MLP_activation_functions")
+    neuron_counts = mlp_architecture.get("neuron_counts")
+    activation_functions = mlp_architecture.get("mlp_activation_functions")
 
     neuron_counts.insert(0, input_feature_count)
 
@@ -76,7 +77,7 @@ class MLP(Network):
       if training and self.dropout_rate and layer != self.layers[-1]:
         curr_input = self.dropout(curr_input)
 
-    return curr_input
+    return curr_input.squeeze()
 
 
 
@@ -106,12 +107,10 @@ class MLP(Network):
     with torch.no_grad():
 
       if not self.optimizer:
-        for layer in self.layers:
-          self.update(layer)
+          self.update()
       else:
         self.t += 1
-        for layer in self.layers:
-          self.optimizerUpdate(layer)
+        self.optimizerUpdate()
 
 
 

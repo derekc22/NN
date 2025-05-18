@@ -46,9 +46,9 @@ class ConvolutionalLayer(Layer):
 
 
 
-    print(self.kernels.device)
-    if is_conv_layer:
-      print(self.biases.device)
+    # print(self.kernels.device)
+    # if is_conv_layer:
+    #   print(self.biases.device)
 
 
 

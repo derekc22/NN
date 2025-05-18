@@ -12,12 +12,12 @@ class CNN(Network):
     self.device_type = device_type
 
     if not pretrained:
-      cnn_model_config = kwargs.get("cnn_model_config")
-      self.checkConfig(model_config=cnn_model_config)
-      self.layers = self.buildLayers(cnn_model_config=cnn_model_config)
+      cnn_architecture = kwargs.get("cnn_architecture")
+      self.checkConfig(architecture=cnn_architecture)
+      self.layers = self.buildLayers(cnn_architecture=cnn_architecture)
 
       MLP_input_feature_count = self.calcMLPInputSize(kwargs.get("input_data_dim"))
-      self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=MLP_input_feature_count, mlp_model_config=kwargs.get("mlp_model_config"), hyperparameters=kwargs.get("mlp_hyperparameters"))
+      self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=MLP_input_feature_count, mlp_architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"))
     else:
       self.layers = self.loadLayers(kwargs.get("cnn_model_params"))
       self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, mlp_model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"))
@@ -28,7 +28,8 @@ class CNN(Network):
     if training and self.optimizer:
       self.setOptimizer()
 
-
+    if not (self.layers and self.MLP.layers):
+      raise ValueError("Layers are uninitialized!")
 
 
 
@@ -47,13 +48,12 @@ class CNN(Network):
     return layers
 
 
-  def buildLayers(self, cnn_model_config):
-
-    is_conv_layer = cnn_model_config.get("is_conv_layer")
-    filter_counts = cnn_model_config.get("filter_counts")
-    kernel_shapes = cnn_model_config.get("kernel_shapes")
-    kernel_strides = cnn_model_config.get("kernel_strides")
-    activation_functions = cnn_model_config.get("CNN_activation_functions")
+  def buildLayers(self, cnn_architecture):
+    is_conv_layer = cnn_architecture.get("is_conv_layer")
+    filter_counts = cnn_architecture.get("filter_counts")
+    kernel_shapes = cnn_architecture.get("kernel_shapes")
+    kernel_strides = cnn_architecture.get("kernel_strides")
+    activation_functions = cnn_architecture.get("cnn_activation_functions")
     num_layers = len(is_conv_layer)
 
     layers = [ConvolutionalLayer(
@@ -88,8 +88,7 @@ class CNN(Network):
 
     dummy_data = torch.empty(size=input_data_dim, device=self.device_type)
     dummy_MLP_input = self.forward(dummy_data, training=True, dummy=True)
-    dummy_MLP_input_feature_count = dummy_MLP_input.size(dim=0)
-
+    dummy_MLP_input_feature_count = dummy_MLP_input.size(dim=1)
     return dummy_MLP_input_feature_count
 
 
@@ -119,7 +118,9 @@ class CNN(Network):
 
 
     curr_input_batch_size = curr_input.size(dim=0)
-    flattened_feature_map = curr_input.view(curr_input_batch_size, -1).to(torch.float32).T
+    # flattened_feature_map = curr_input.view(curr_input_batch_size, -1).to(torch.float32).T
+    flattened_feature_map = curr_input.view(curr_input_batch_size, -1).to(torch.float32)
+    # print(flattened_feature_map.shape)
 
 
     """flattened_feature_map = curr_input.view(curr_input_batch_size, -1).to(torch.float32).T""" # <------------THIS IS WHAT CHAT GPT o1 PREVIEW GAVE ME (that works, presumably)

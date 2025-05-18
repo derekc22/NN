@@ -1,0 +1,37 @@
+specs:
+  device_type: "cpu"
+  mode: "test"
+  pretrained: true
+  input_feature_count: 9
+
+#------------------------------------------------------------------------------------------------------------------------
+train:
+  epochs: 5000
+  train_dataset_size: 5000
+  show_loss_plot: true
+
+hyperparameters:
+  mlp_hyperparameters: 
+    learn_rate: 0.01   
+    batch_size: 128
+    loss_func: "MSELoss"
+    reduction: "mean"
+    optimizer: ~ #"adam"
+    lambda_L2: 0.001 #1e-6
+    dropout_rate: ~
+
+architecture:
+  mlp_architecture:
+    neuron_counts: [64, 64, 1]
+    mlp_activation_functions: ["leakyReLU", "leakyReLU", "leakyReLU"]
+
+#------------------------------------------------------------------------------------------------------------------------
+test:
+  test_dataset_size: 100
+  show_results: false
+
+parameters: 
+  mlp_parameters_fpath: "./params/paramsMLP"
+
+
+

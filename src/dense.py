@@ -27,9 +27,11 @@ class DenseLayer(Layer):
       # self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32, device=self.device_type)  # Xavier Initialization
 
       stddev = np.sqrt(2 / input_count)
-      self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32)  # He Initialization
+      # self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32)  # He Initialization
+      self.weights = torch.normal(0, stddev, size=(input_count, neuron_count), dtype=torch.float32)  # He Initialization
 
-      self.biases = torch.zeros(size=(neuron_count, 1), dtype=torch.float32, device=self.device_type)
+      # self.biases = torch.zeros(size=(neuron_count, 1), dtype=torch.float32, device=self.device_type)
+      self.biases = torch.zeros(neuron_count, dtype=torch.float32, device=self.device_type)
 
     else:
       self.weights = kwargs.get("pretrained_weights").to(device=self.device_type)
@@ -52,13 +54,16 @@ class DenseLayer(Layer):
 
 
   def feed(self, x):
-
-    z = torch.matmul(self.weights, x) + self.biases
+    # print(self.weights.shape)
+    # print(x.shape)
+    # print(self.biases)
+    z = torch.matmul(x, self.weights) + self.biases
 
     # ####### TESTING THIS ############################
-    if x.size(dim=1) > 1:
-      bn1 = nn.BatchNorm1d(num_features=self.weights.size(dim=0), dtype=torch.float32, device=self.device_type)
-      z = bn1(z.T).T
+    if x.size(dim=0) > 1:
+      bn1 = nn.BatchNorm1d(num_features=self.weights.size(dim=1), dtype=torch.float32, device=self.device_type)
+      # z = bn1(z.T).T
+      z = bn1(z)
     # ####### TESTING THIS ############################
 
 

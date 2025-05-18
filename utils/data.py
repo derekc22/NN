@@ -6,9 +6,19 @@ torch.set_printoptions(threshold=torch.inf)
 import glob, os, re
 import matplotlib.pyplot as plt, matplotlib.pylab as pylab
 from torchvision import transforms
+import yaml
 
 
 
+def printInferenceResults(dataset_size, prediction_batch, label_batch):
+    print(prediction_batch.shape)
+    print(label_batch.shape)
+
+    num_correct = torch.sum(torch.abs(prediction_batch - label_batch) <= 0.5)
+    print(f"number correct = {num_correct.item()}/{dataset_size}")
+
+    percent_correct = (num_correct/dataset_size)*100
+    print(f"percent correct = {percent_correct.item()}%")
 
 
 def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_batch, color_channels, show_images):
@@ -37,7 +47,7 @@ def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_ba
 
   else:
 
-    predictions = ["dog" if pet >= 0.5 else "cat" for pet in prediction_batch[0].tolist()]
+    predictions = ["dog" if pet >= 0.5 else "cat" for pet in prediction_batch.tolist()]
     labels = ["dog" if pet_label == 1 else "cat" for pet_label in label_batch.tolist()]
 
     print(f"predictions = {predictions}")
@@ -47,12 +57,13 @@ def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_ba
     # print(prediction_batch.shape)
     # print(label_batch)
 
-    num_correct = torch.sum(torch.abs(prediction_batch - label_batch) <= 0.5)
-    print(f"number correct = {num_correct.item()}/{dataset_size}")
+    # num_correct = torch.sum(torch.abs(prediction_batch.squeeze() - label_batch) <= 0.5)
+    # print(f"number correct = {num_correct.item()}/{dataset_size}")
 
-    percent_correct = (num_correct/dataset_size)*100
-    print(f"percent correct = {percent_correct.item()}%")
+    # percent_correct = (num_correct/dataset_size)*100
+    # print(f"percent correct = {percent_correct.item()}%")
 
+    printInferenceResults(dataset_size, prediction_batch, label_batch)
 
     if show_images:
       for (img, pred, lbl) in zip(img_batch, predictions, labels):
@@ -169,7 +180,7 @@ def genPetImageStack(dataset_size, use, device_type, img_height, img_width, mult
     target_tensors = torch.zeros(dataset_size) if not multi_out else torch.zeros(size=(2, dataset_size))
 
     for n in range(dataset_size):
-        print(f"generating training data.... {(n/dataset_size)*100}%")
+        print(f"generating training data.... {(n/dataset_size)*100:.1f}%") if (n % 100) == 0 else None
         # Generate random index and select seed
 
 
@@ -202,8 +213,8 @@ def genPetImageStack(dataset_size, use, device_type, img_height, img_width, mult
     #         torch.save(data_tensors, "petdatatensors.pth")
     #         torch.save(target_tensors, "pettargettensors.pth")
 
-    print(data_tensors.shape)
-    print(target_tensors.shape)
+    # print(data_tensors.shape)
+    # print(target_tensors.shape)
     return data_tensors, target_tensors
 
 
@@ -298,10 +309,49 @@ def fetchCNNParametersFromFile(device_type, directory):
 
 
 
+def genMatrixStack(n, d=5):
+    num_a = n // 2
+    num_b = n - num_a
+
+    A = torch.randn(num_a, d, d)
+    symmetric_tensors = (A + A.transpose(1, 2)) / 2
+    symmetric_labels = torch.ones((num_a, ))
+
+    B = torch.randn(num_b, d, d)
+    non_symmetric_labels = torch.zeros((num_b, ))
+
+    ds = torch.cat([symmetric_tensors, B], dim=0)
+    labels = torch.cat([symmetric_labels, non_symmetric_labels], dim=0)
+
+    shuffle_indices = torch.randperm(n)
+
+    data_batch = ds[shuffle_indices]
+    # print(data_batch)
+    data_batch = torch.flatten(data_batch, start_dim=1)
+    label_batch = labels[shuffle_indices]
+    
+    return data_batch, label_batch
+   
+
+
+
+def load_config(yaml_path):
+  with open(yaml_path, "r") as f:
+      return yaml.safe_load(f)
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
   # genPetImageStack(15, 64, 64, False, False, 1)
 
   # idk = fetchMLPParametersFromFile("cpu", "/params/paramsMLP")
-  idk = fetchCNNParametersFromFile("cpu", "./params/paramsCNN")
+  # idk = fetchCNNParametersFromFile("cpu", "./params/paramsCNN")
   
-  print(idk)
+  idk1, idk2 = genMatrixStack(5, 2)
+  print(idk1)
+  print(idk2)
