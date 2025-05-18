@@ -46,14 +46,13 @@ class Network:
     epoch_plt = []
     loss_plt = []
 
-    if not epochs: epochs = data.size(dim=1)/self.batch_size
-
+    epochs = (epochs or data.size(dim=0)/self.batch_size)
 
     for epoch in range(1, int(epochs+1)):
       
       data_batch, target_batch = self.batch(data, target)
       pred_batch = self.forward(data_batch, training=True)
-      print(f"pred: {pred_batch.shape}")
+      # print(f"pred: {pred_batch.shape}")
 
       loss = getattr(self, self.loss_func)(pred_batch, target_batch)
 
@@ -87,15 +86,34 @@ class Network:
 
 
 
+  # def batch(self, data, target):
+  #   batch_indicies = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
+
+  #   data_batch = data[batch_indicies]
+
+  #   target_batch = target.T[batch_indicies].T
+
+  #   return data_batch, target_batch
+
+
   def batch(self, data, target):
+    # return data, target
 
-      batch_indicies = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
+    # print(data)
+    # batch_indicies = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
+    batch_indicies = torch.randperm(n=data.shape[0])[:self.batch_size]  # stochastic
 
-      data_batch = data[batch_indicies]
 
-      target_batch = target.T[batch_indicies].T
+    data_batch = data[batch_indicies]
+    target_batch = target[batch_indicies]
+    # print(data_batch.shape)
+    # print(target_batch.shape)
 
-      return data_batch, target_batch
+
+    # print(data_batch.shape)
+    # print(target_batch.shape)
+
+    return data_batch, target_batch
 
 
 
@@ -143,7 +161,8 @@ class Network:
 
 
   def BCELoss(self, pred_batch, target_batch):
-
+    print(pred_batch.shape)
+    print(target_batch.shape)
     epsilon = 1e-8
     pred_batch = torch.clamp(pred_batch, epsilon, 1 - epsilon)
     errs = target_batch * torch.log(pred_batch) + (1 - target_batch) * torch.log(1 - pred_batch)
@@ -173,7 +192,9 @@ class Network:
 
 
   def MSELoss(self, pred_batch, target_batch):
-
+    # print(pred_batch.shape)
+    # print(target_batch.shape)
+    # print((pred_batch - target_batch).shape)
     errs = (pred_batch - target_batch)**2
     mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0)  # MSE (Mean Square Error) Loss
     mse_loss_reduced = self.reduce(mse_loss)
@@ -267,13 +288,13 @@ class Network:
 
 
 
-  def checkConfig(self, model_config):
+  def checkConfig(self, architecture):
 
-    config_lengths = [len(v) for k, v in model_config.items()]
+    config_lengths = [len(v) for k, v in architecture.items()]
     all_same_length = all(config_length == config_lengths[0] for config_length in config_lengths)
 
     if not all_same_length:
-      raise IndexError(f"{self.model_type} Configuration Error. Recheck sizes of configuration objects")
+      raise IndexError(f"{self.model_type} Configuration Error. Recheck sizes of configuration objects: {config_lengths}")
 
 
 

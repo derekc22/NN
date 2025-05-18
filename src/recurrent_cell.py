@@ -1,5 +1,5 @@
 import torch
-import numpy
+import numpy as np
 import torch.nn as nn
 from src.layer import Layer
 
@@ -14,7 +14,13 @@ class RecurrentCell(Layer):
 
 
         if not pretrained:
-            self.
+            input_size = kwargs.get("input_size")
+            neuron_count = kwargs.get("neuron_count")
+            stddev = np.sqrt(2 / input_size)
+
+            self.wxh = torch.normal(0, stddev, size=(input_size, neuron_count), device_type=torch.float32) # He Initialization
+            self.whh = torch.normal(0, stddev, size=(input_size, neuron_count), device_type=torch.float32) # He Initialization
+            self.why = torch.normal(0, stddev, size=(input_size, neuron_count), device_type=torch.float32) # He Initialization
 
 
         else:

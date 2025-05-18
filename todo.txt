@@ -1,0 +1,5 @@
+05/17/2025
+    - change if statements in src/network.py to use switch statements
+
+05/18/2025
+    - add validation loss tracking to the training loop
