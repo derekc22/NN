@@ -12,7 +12,7 @@ train:
 hyperparameters:
     learn_rate: 0.01
     batch_size: 64 # Keep this as None to avoid shuffling data. temporal relationships are important in RNNs
-    loss_func: "SSELoss"
+    loss_func: "MSELoss"
     reduction: "mean"
     optimizer: "adam"
     lambda_L2: ~ # 0.0001
