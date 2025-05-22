@@ -17,7 +17,6 @@ class RecurrentCell():
         self.why_nonlinearity = kwargs.get("output_activation_function")
         self.type = kwargs.get("type")
         self.stateful = kwargs.get("stateful")
-        # self.num_sequences = kwargs.get("num_sequences")
         
         if not pretrained:
 
@@ -68,7 +67,13 @@ class RecurrentCell():
         #         device=self.device_type) 
         #     # self.ht = 0
 
-        self.wxh_neuron_count = wxh_neuron_count
+        if self.stateful and self.type == "hidden":
+            self.ht1 = torch.zeros(
+            wxh_neuron_count, 
+            dtype=torch.float32, 
+            device=self.device_type)
+        else:
+            self.wxh_neuron_count = wxh_neuron_count
 
 
         self.wxh.requires_grad_()
@@ -81,21 +86,14 @@ class RecurrentCell():
 
 
 
-
-    def generate_state(self, num_sequences):
-        if self.stateful and self.type == "hidden":
-            self.ht1 = torch.zeros(
-            num_sequences, self.wxh_neuron_count, 
-            dtype=torch.float32, 
-            device=self.device_type)
-
-
-
     def __repr__(self):
         pass
         # return (f"__________________________________________\n"
         #         f"MLP Layer {self.index}\nWeights:\n{self.weights}\nBiases:\n{self.biases}\nActivation:\n{self.nonlinearity}\n"
         #         f"__________________________________________")
+
+
+
 
 
 

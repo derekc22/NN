@@ -28,7 +28,7 @@ class DenseLayer(Layer):
 
       stddev = np.sqrt(2 / input_count)
       # self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32)  # He Initialization
-      self.weights = torch.normal(0, stddev, size=(input_count, neuron_count), dtype=torch.float32)  # He Initialization
+      self.weights = torch.normal(0, stddev, size=(input_count, neuron_count), dtype=torch.float32, device=self.device_type)  # He Initialization
 
       # self.biases = torch.zeros(size=(neuron_count, 1), dtype=torch.float32, device=self.device_type)
       self.biases = torch.zeros(neuron_count, dtype=torch.float32, device=self.device_type)
@@ -67,7 +67,7 @@ class DenseLayer(Layer):
     # ####### TESTING THIS ############################
 
 
-    activations = self.activate(z, self.nonlinearity)
+    y = self.activate(z, self.nonlinearity)
 
 
-    return activations
+    return y

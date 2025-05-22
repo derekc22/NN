@@ -3,3 +3,4 @@
 
 05/18/2025
     - add validation loss tracking to the training loop
+    - change mlp layer numbering to start from 01 instead of 02 (ie 'layer_01_weights_sigmoid' instead of 'layer_02_weights_sigmoid')

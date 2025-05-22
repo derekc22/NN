@@ -1,6 +1,7 @@
-import os
 import torch
 import torch.nn as nn
+from torch.nn.utils import clip_grad_norm_, clip_grad_value_
+
 
 class Network:
 
@@ -17,6 +18,53 @@ class Network:
       self.optimizer = hyperparameters.get("optimizer")
       self.lambda_L2 = hyperparameters.get("lambda_L2")  # regularization strength which controls how much the L2 penalty influences the loss. Larger λ values increase the regularization effect.
       self.dropout_rate = hyperparameters.get("dropout_rate")
+      self.grad_clip_norm  = hyperparameters.get('grad_clip_norm')
+      self.grad_clip_value = hyperparameters.get('grad_clip_value')
+
+
+
+
+
+  def _collect_parameters(self):
+    """
+    Walk self.layers and return a flat list of all weight Tensors whose
+    .grad you want to clip. Adapt these attribute names to match your layers.
+    """
+    params = []
+    for layer in self.layers:
+      if self.model_type == "cnn" and layer.is_conv_layer:
+        params.extend([layer.kernels, layer.biases])
+      elif self.model_type == "mlp":
+        params.extend([layer.weights, layer.biases])
+      elif self.model_type == "rnn":
+        params.append(layer.wxh)
+        if layer.type == "hidden":
+          params.extend([layer.whh, layer.bh])
+        elif layer.type == "output":
+          params.append(layer.by)
+    return params
+
+
+  def clipGradients(self):
+    """
+    Apply PyTorch’s native clipping to the gradients in-place.
+    Call immediately after loss.backward().
+    """
+    params = self._collect_parameters()
+    # print(len(params))
+
+    # grads = [p.grad for p in params if p.grad is not None]
+    # total_grad_norm = torch.norm(torch.stack([g.norm() for g in grads]))
+    # print("Before clip, grad norm:", total_grad_norm.item())
+    
+    if self.grad_clip_norm is not None:
+      clip_grad_norm_(params, self.grad_clip_norm)
+    if self.grad_clip_value is not None:
+      clip_grad_value_(params, self.grad_clip_value)
+
+    # grads = [p.grad for p in params if p.grad is not None]
+    # total_grad_norm = torch.norm(torch.stack([g.norm() for g in grads]))
+    # print("After clip, grad norm:", total_grad_norm.item())
 
 
 
@@ -30,23 +78,25 @@ class Network:
       self.t = 0
       self.weight_moment_list = [[0, 0]]*self.num_layers
       self.bias_moment_list = [[0, 0]]*self.num_layers
+      self.other_moment_list = [[0, 0]]*self.num_layers
 
 
 
 
   def inference(self, data):
-    return self.forward(data, training=False)
+    with torch.no_grad(): # new
+      return self.forward(data, training=False)
 
 
 
 
 
-  def train(self, data, target, save_params=True, epochs=None):
+  def train(self, data, target, epochs, save_params=True):
 
     epoch_plt = []
     loss_plt = []
 
-    epochs = (epochs or data.size(dim=0)/self.batch_size)
+    # epochs = (epochs or (data.size(dim=0/self.batch_size)))
 
     for epoch in range(1, int(epochs+1)):
       
@@ -67,8 +117,6 @@ class Network:
       print(f"__________________________________________")
 
 
-    os.makedirs('params/paramsCNN', exist_ok=True)
-    os.makedirs('params/paramsMLP', exist_ok=True)
     self.saveParameters() if save_params else None
     return epoch_plt, loss_plt
 
@@ -87,33 +135,28 @@ class Network:
 
 
   # def batch(self, data, target):
-  #   batch_indicies = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
+  #   batch_indices = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
 
-  #   data_batch = data[batch_indicies]
+  #   data_batch = data[batch_indices]
 
-  #   target_batch = target.T[batch_indicies].T
+  #   target_batch = target.T[batch_indices].T
 
   #   return data_batch, target_batch
 
 
   def batch(self, data, target):
-    # return data, target
+    # print( "yoooo", self.batch_size)
+    if self.batch_size:
+      # print("batched")
+      # batch_indices = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
+      batch_indices = torch.randperm(n=data.shape[0])[:self.batch_size]  # stochastic
 
-    # print(data)
-    # batch_indicies = torch.randperm(n=data.size(dim=0))[:self.batch_size]  # stochastic
-    batch_indicies = torch.randperm(n=data.shape[0])[:self.batch_size]  # stochastic
+      data_batch = data[batch_indices]
+      target_batch = target[batch_indices]
+      return data_batch, target_batch
 
-
-    data_batch = data[batch_indicies]
-    target_batch = target[batch_indicies]
-    # print(data_batch.shape)
-    # print(target_batch.shape)
-
-
-    # print(data_batch.shape)
-    # print(target_batch.shape)
-
-    return data_batch, target_batch
+    
+    return data, target
 
 
 
@@ -161,8 +204,8 @@ class Network:
 
 
   def BCELoss(self, pred_batch, target_batch):
-    print(pred_batch.shape)
-    print(target_batch.shape)
+    # print(pred_batch.shape)
+    # print(target_batch.shape)
     epsilon = 1e-8
     pred_batch = torch.clamp(pred_batch, epsilon, 1 - epsilon)
     errs = target_batch * torch.log(pred_batch) + (1 - target_batch) * torch.log(1 - pred_batch)
@@ -196,10 +239,17 @@ class Network:
     # print(target_batch.shape)
     # print((pred_batch - target_batch).shape)
     errs = (pred_batch - target_batch)**2
-    mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0)  # MSE (Mean Square Error) Loss
+    mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) if self.batch_size else (1/pred_batch.shape[0])*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
     mse_loss_reduced = self.reduce(mse_loss)
 
     return mse_loss_reduced
+  
+  def SSELoss(self, pred_batch, target_batch):
+    errs = (pred_batch - target_batch)**2
+    sse_loss = torch.sum(errs, dim=0)  # SSE (Sum Squared Error) Loss
+    sse_loss_reduced = self.reduce(sse_loss)
+
+    return sse_loss_reduced
 
 
 
@@ -207,21 +257,27 @@ class Network:
 
     for layer in self.layers:
 
-      if self.model_type == "CNN" and layer.is_conv_layer:
+      if self.model_type == "cnn" and layer.is_conv_layer:
         layer.kernels -= self.learn_rate * layer.kernels.grad
         layer.biases -= self.learn_rate * layer.biases.grad
 
-      elif self.model_type == "MLP":
+      elif self.model_type == "mlp":
         layer.weights -= self.learn_rate * layer.weights.grad
         layer.biases -= self.learn_rate * layer.biases.grad
 
-
+      elif self.model_type == "rnn":
+        layer.wxh -= self.learn_rate * layer.wxh.grad
+        if layer.type == "hidden":
+          layer.whh -= self.learn_rate * layer.whh.grad
+          layer.bh -= self.learn_rate * layer.bh.grad
+        elif layer.type == "output":
+          layer.by -= self.learn_rate * layer.by.grad
 
 
 
   def adam(self, layer_index, gt, param_type, *args):
 
-    moment_list = self.weight_moment_list if param_type == "weight" else self.bias_moment_list
+    moment_list = self.weight_moment_list if param_type == "weight" else self.bias_moment_list if param_type == "bias" else self.other_moment_list
 
     mt_1, vt_1 = moment_list[layer_index]
 
@@ -239,6 +295,11 @@ class Network:
 
     adam_grad = (self.learn_rate*mt_hat)/(torch.sqrt(vt_hat) + epsilon)
 
+    # print(mt_1.shape)
+    # print(gt.shape)
+    # print(mt_1)
+    # print(gt)
+
     return adam_grad
 
 
@@ -250,16 +311,28 @@ class Network:
 
     for layer in self.layers:
 
-      if self.model_type == "CNN" and layer.is_conv_layer:
-        layer_index = self.layers.index(layer)
+      if self.model_type == "cnn" and layer.is_conv_layer:
+        # layer_index = self.layers.index(layer)
+        layer_index = layer.index-1 # why am i not just doing this???
         layer.kernels -= optimizer_func(layer_index=layer_index, gt=layer.kernels.grad, param_type="weight")
         layer.biases -= optimizer_func(layer_index=layer_index, gt=layer.biases.grad, param_type="bias")
         # print(layer.kernels)
 
-      elif self.model_type == "MLP":
-        layer_index = self.layers.index(layer)
+      elif self.model_type == "mlp":
+        # layer_index = self.layers.index(layer)
+        layer_index = layer.index-1 # why am i not just doing this???
         layer.weights -= optimizer_func(layer_index=layer_index, gt=layer.weights.grad, param_type="weight")
         layer.biases -= optimizer_func(layer_index=layer_index, gt=layer.biases.grad, param_type="bias")
+
+      elif self.model_type == "rnn":
+        # layer_index = self.layers.index(layer)
+        layer_index = layer.index-1 # why am i not just doing this???
+        layer.wxh -= optimizer_func(layer_index=layer_index, gt=layer.wxh.grad, param_type="weight")
+        if layer.type == "hidden":
+          layer.whh -= optimizer_func(layer_index=layer_index, gt=layer.whh.grad, param_type="other")
+          layer.bh -= optimizer_func(layer_index=layer_index, gt=layer.bh.grad, param_type="bias")
+        elif layer.type == "output":
+          layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="bias")
 
 
 
@@ -271,10 +344,12 @@ class Network:
       weight_sum = 0
 
       for layer in self.layers:
-        if self.model_type == "CNN" and layer.is_conv_layer:
+        if self.model_type == "cnn" and layer.is_conv_layer:
           weight_sum += (torch.sum(layer.kernels ** 2))
-        elif self.model_type == "MLP":
+        elif self.model_type == "mlp":
           weight_sum += (torch.sum(layer.weights ** 2))
+        elif self.model_type == "rnn":
+          weight_sum += (torch.sum(layer.wxh ** 2))
 
 
       regularization = self.lambda_L2*weight_sum
@@ -305,10 +380,9 @@ class Network:
     for layer in self.layers:
       print(layer)
 
-    if self.model_type == "CNN":
+    if self.model_type == "cnn":
       for layer in self.MLP.layers:
         print(layer)
-
 
 
 
@@ -316,10 +390,18 @@ class Network:
 
     for layer in self.layers:
 
-      if self.model_type == "CNN" and layer.is_conv_layer:
+      if self.model_type == "cnn" and layer.is_conv_layer:
         layer.kernels.grad = None
         layer.biases.grad = None
 
-      elif self.model_type == "MLP":
+      elif self.model_type == "mlp":
         layer.weights.grad = None
         layer.biases.grad = None
+
+      elif self.model_type == "rnn":
+        layer.wxh.grad = None
+        if layer.type == "hidden":
+          layer.whh.grad = None
+          layer.bh.grad = None
+        elif layer.type == "output":
+          layer.by.grad = None

@@ -31,8 +31,8 @@ class ConvolutionalLayer(Layer):
       self.biases = torch.rand(size=(1, self.filter_count, 1), dtype=torch.float32, device=self.device_type) if is_conv_layer else None
 
       # He Initialization
-      input_count = self.filter_count * self.kernel_height * self.kernel_width
-      stddev = np.sqrt(2 / input_count)
+      feature_count = self.filter_count * self.kernel_height * self.kernel_width
+      stddev = np.sqrt(2 / feature_count)
       self.kernels = torch.normal(0, stddev, size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32) if is_conv_layer else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32)
 
     else:
