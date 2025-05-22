@@ -2,6 +2,9 @@ import torch
 
 class Layer:
 
+  @staticmethod
+  def tanh(k):
+    return torch.tanh(k)
 
   @staticmethod
   def reLU(k):
@@ -34,3 +37,8 @@ class Layer:
 
   def activate(self, z, nonlinearity):
     return getattr(self, nonlinearity)(z)
+  
+  
+  @staticmethod
+  def staticActivate(z, nonlinearity):
+      return getattr(Layer, nonlinearity)(z)

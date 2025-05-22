@@ -1,14 +1,35 @@
-05/18/2025
+ mlp-reshape (05/18/2025)
     - create a new directory structure for the project
     - reshape mlp weight matrices from (input_features x data_set_size) to (data_set_size x input_features)
     - completely refactor training scripts to fit new mlp weight matrix shape
     - add config yaml files for each model
     - create separate main.py scripts for each model that use the config files instead of argparse
     - write symmetric tensor data generation function for mlp training/testing (genMatrixStack())
-    - abstracted inference result printing and calculation into separate function (printInferenceResults())
+    - abstracted inference result printing and calculation into separate function (printClassificationResults())
     - initialize logger and todo functionalities
     - initialize empty files for rnn, llm, lstm, and transformer model 
     - add changes.txt
     - add requirements.txt
     - add .gitignore
 
+rnn (05/21/2025)
+   - fully working rnn model, trained on sine wave data
+   - supports stateful and stateless training/inference
+   - added tanh activation function
+   - added gradient clipping
+
+   - added sine wave data generation function (genSineWave())
+   -- generates batch of sine wave data with specified number of timesteps
+   -- includes arguments for adding noise and varying phase to ensure diverse training data
+
+   - fixed bug where self.device was a string ('cpu') instead of a torch.device object (<torch.device('cpu')>)
+   - split utils/data.py into multiple, model-specific files for better organization
+
+   - added bash script, run.sh, to run training and inference all with one command 
+   -- to run the script, use the command: ./run.sh <file_name> from the root directory...
+   -- where <file_name> is the name of the main file to run (NOT including 'main_' or the extension '.py') (e.g. rnn, mlp, sine_rnn)
+   -- note that the associated config file must have the same name as the main file (e.g. sine_rnn.yaml for main_sine_rnn.py)
+   -- example usage to run the sine_rnn model: ./run.sh sine_rnn
+   -- where the yaml file would be named: sine_rnn.yaml
+
+   - started working on text generation with rnn

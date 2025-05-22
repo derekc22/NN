@@ -1,19 +1,26 @@
-import torch
+
 from utils.data import *
+from utils.cnn_utils import *
+from utils.mlp_utils import fetchMLPParametersFromFile
 from models.cnn import CNN
-import yaml
+import argparse
+
+parser = argparse.ArgumentParser(description='Run the simulation')
+parser.add_argument('--config', type=str, help='Specify config location')
+parser.add_argument('--mode', type=str, help='Specify "train" or "test"')
+parser.add_argument('--pretrained', action="store_true", help='Specify if model is pretrained')
+args = parser.parse_args()
 
 
-
-config = load_config("config/cnn.yml")
+config = load_config(args.config)
 
 specs = config["specs"]
-input_data_dim = tuple(specs["input_data_dim"])
-color_channels, img_height, img_width = input_data_dim
 multi_out = specs["multi_out"]
 device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mode = specs["mode"]
-pretrained = specs["pretrained"]
+mode = args.mode #mode = specs["mode"]
+pretrained = args.pretrained #specs["pretrained"]
+input_data_dim = tuple(specs["input_data_dim"])
+color_channels, img_height, img_width = input_data_dim
 
 parameters = config["parameters"]
 architecture = config["architecture"]
@@ -62,7 +69,7 @@ if mode == "train":
             input_data_dim=input_data_dim
         )
 
-    (epoch_plt, loss_plt) = cnn.train(img_batch, label_batch, epochs=epochs, save_params=True)
+    (epoch_plt, loss_plt) = cnn.train(img_batch, label_batch, epochs, save_params=True)
     if epoch_plt and show_plot:
         plotTrainingResults(epoch_plt, loss_plt)
 

@@ -1,8 +1,8 @@
 specs:
   multi_out: false
   device_type: "cpu"
-  mode: "test"
-  pretrained: true
+  # mode: "test"
+  # pretrained: true
   input_data_dim: [1, 64, 64] # [color_channels, img_height, img_width]
 
 # specs:
@@ -14,7 +14,7 @@ specs:
 
 #------------------------------------------------------------------------------------------------------------------------
 train:
-  epochs: 800
+  epochs: 500
   train_dataset_size: 1000
   show_loss_plot: true
 
@@ -39,10 +39,10 @@ architecture:
     filter_counts: [2, 2, 4, 4] # THE NUMBER OF FILTERS IN A POOLING KERNEL MUST MATCH THE NUMBER OF FILTERS IN THE PRECEEDING CONVOLUTIONAL LAYER KERNEL
     kernel_shapes: [[5, 5], [2, 2], [3, 3], [2, 2]]
     kernel_strides: [1, 2, 1, 2]
-    cnn_activation_functions: ["leakyReLU", "none", "leakyReLU", "none"]
+    activation_functions: ["leakyReLU", "none", "leakyReLU", "none"]
   mlp_architecture:
     neuron_counts: [1]
-    mlp_activation_functions: ["sigmoid"]
+    activation_functions: ["sigmoid"]
 
 
 #------------------------------------------------------------------------------------------------------------------------
@@ -51,8 +51,8 @@ test:
   show_results: true
 
 parameters: 
-  cnn_parameters_fpath: "./params/archive/pets/paramsCNN"
-  mlp_parameters_fpath: "./params/archive/pets/paramsMLP"
+  cnn_parameters_fpath: "./params/paramsCNN"
+  mlp_parameters_fpath: "./params/paramsMLP"
 
 
 

@@ -1,33 +1,38 @@
 specs:
   device_type: "cpu"
   # mode: "train"
-  # pretrained: false
-  input_feature_count: 9
+  # pretrained: false  
+  input_feature_count: 1
+  # time_steps: 200
 
 #------------------------------------------------------------------------------------------------------------------------
 train:
-  epochs: 5000
+  epochs: 1000
   train_dataset_size: 5000
   show_loss_plot: true
 
 hyperparameters:
     learn_rate: 0.01   
-    batch_size: 128
-    loss_func: "MSELoss"
+    batch_size: 200
+    loss_func: "SSELoss"
     reduction: "mean"
     optimizer: "adam"
-    lambda_L2: 0.001 #1e-6
+    lambda_L2: ~ #0.000006
     dropout_rate: ~
 
 architecture:
-    neuron_counts: [64, 64, 1]
-    activation_functions: ["leakyReLU", "leakyReLU", "leakyReLU"]
+    # hidden_state_neuron_counts: [16, 32, 64]
+    # hidden_state_neuron_counts: [2, 4, 6]
+    # hidden_state_neuron_counts: [4, 8]
+    hidden_state_neuron_counts: [16]
+    output_feature_count: 1
+    hidden_activation_function: "tanh"
+    output_activation_function: "none"
 
 #------------------------------------------------------------------------------------------------------------------------
 test:
   test_dataset_size: 100
-  show_results: false
 
 
-parameters_fpath: "./params/paramsMLP"
+parameters_fpath: "./params/paramsRNN"
 
