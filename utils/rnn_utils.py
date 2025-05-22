@@ -96,69 +96,6 @@ def fetchRNNParametersFromFile(device_type, directory):
 
 
 
-# def get_string_embedding(text, embedding_dim, device='cpu'):
-#     """
-#     Converts a string to embeddings using a Hugging Face tokenizer and a PyTorch embedding layer.
-
-#     Args:
-#         text (str): Input string.
-#         tokenizer: Hugging Face tokenizer.
-#         embedding_layer (nn.Embedding): PyTorch embedding layer.
-#         device (str): 'cpu' or 'cuda'.
-
-#     Returns:
-#         torch.Tensor: (sequence_length, embedding_dim)
-#     """
-#     # Load tokenizer (e.g., from BERT or GPT2)
-#     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-#     vocab_size = tokenizer.vocab_size
-#     embedding_layer = nn.Embedding(vocab_size, embedding_dim)
-
-#     tokens = tokenizer.encode(text, add_special_tokens=False, return_tensors="pt").to(device)
-#     with torch.no_grad():
-#         embeddings = embedding_layer(tokens.squeeze(0))
-#     return embeddings
-
-
-
-
-
-
-# def decode_predictions(predictions, embedding_dim):
-#     """
-#     Map RNN outputs back to tokens by finding the nearest embeddings.
-
-#     Args:
-#         predictions (torch.Tensor): Tensor of shape (seq_len, embedding_dim)
-#         embedding_layer (nn.Embedding): Embedding layer used during input.
-#         tokenizer: Hugging Face tokenizer.
-
-#     Returns:
-#         list[str]: Decoded tokens
-#     """
-#     # Load tokenizer (e.g., from BERT or GPT2)
-#     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-#     vocab_size = tokenizer.vocab_size
-#     embedding_layer = nn.Embedding(vocab_size, embedding_dim)
-
-#     # Get the embedding matrix (vocab_size x embedding_dim)
-#     embedding_weights = embedding_layer.weight.data  # (vocab_size, embedding_dim)
-
-#     # Cosine similarity between each output and vocab embeddings
-#     similarities = F.cosine_similarity(
-#         predictions.unsqueeze(1),  # (seq_len, 1, embed_dim)
-#         embedding_weights.unsqueeze(0),  # (1, vocab_size, embed_dim)
-#         dim=-1
-#     )  # Result: (seq_len, vocab_size)
-
-#     # Get the most similar token indices
-#     token_ids = torch.argmax(similarities, dim=-1).tolist()
-
-#     # Convert back to tokens
-#     tokens = tokenizer.convert_ids_to_tokens(token_ids)
-#     return tokens
-
-
 
 
 
@@ -197,7 +134,7 @@ def encode_word(word, embedding_dim):
         torch.Tensor: Word vector of shape (embedding_dim,)
     """
 
-    glove_path = f"data/glove.6B/glove.6B.{embedding_dim}d.txt"
+    glove_path = f"data/text/glove.6B/glove.6B.{embedding_dim}d.txt"
     vocab, embedding_matrix = load_glove_embeddings(glove_path, embedding_dim)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -225,7 +162,7 @@ def decode_vector(predicted_vector, embedding_dim, top_k=1):
         list[str]: Top-k predicted words
     """
 
-    glove_path = f"data/glove.6B/glove.6B.{embedding_dim}d.txt"
+    glove_path = f"data/text/glove.6B/glove.6B.{embedding_dim}d.txt"
     vocab, embedding_matrix = load_glove_embeddings(glove_path, embedding_dim)
 
     predicted_vector = predicted_vector.unsqueeze(0)  # shape: (1, embedding_dim)
@@ -236,18 +173,48 @@ def decode_vector(predicted_vector, embedding_dim, top_k=1):
     return [index_to_word[i] for i in top_indices]
 
 
-def encode_sentence(sentence, embedding_dim):
-    words = sentence.split()  # Split by whitespace
+def encodeSentence(sentence: str, embedding_dim):
+    print("encoding sentence...")
+    sentence_cleaned = sentence.rstrip('\n')
+    words = sentence_cleaned.split() # Split by whitespace
+    print(words)
     encoded = [encode_word(word, embedding_dim) for word in words]
     return torch.stack(encoded)
 
+def encodeParagraph(paragraph: list, embedding_dim):
+    print("encoding paragraph...")
+    encoded = [encodeSentence(sentence, embedding_dim) for sentence in paragraph]
+    return torch.stack(encoded)
 
-def decode_sentence(sentence_embedding, embedding_dim):
+def decodeSentence(sentence_embedding, embedding_dim):
+    print("decoding sentence...")
     decoded = ' '.join([decode_vector(word_embedding, embedding_dim)[0] for word_embedding in sentence_embedding])
     return decoded
 
+def decodeParagraph(paragraph_embedding, embedding_dim):
+    print("decoding paragraph...")
+    decoded = '\n'.join([decodeSentence(sentence_embedding, embedding_dim) for sentence_embedding in paragraph_embedding])
+    return decoded
 
 
+def genTextTrainingData(readlines_arr: list, embed_dim):
+
+    lengthBools = [len(readlines_arr[0].rstrip('\n').split()) == len(line.rstrip('\n').split()) for line in readlines_arr]
+    allSameLength = all(lengthBools)
+    if not allSameLength:
+        print(lengthBools)
+        raise ValueError(f"sentence #{lengthBools.index(False)} differs in length from sentence #0")
+
+    data_batch = encodeParagraph(readlines_arr, embed_dim)
+    batch_size = data_batch.shape[0]
+    label_batch = data_batch[:, 1:, :].clone()
+    end_line_tensor = torch.load("data/text/embeddings/end_line.pth").unsqueeze(0).repeat(batch_size, 1).unsqueeze(1)
+    label_batch = torch.cat([label_batch, end_line_tensor], dim=1)
+
+    torch.save(data_batch, "data/text/embeddings/data_batch.pth")
+    torch.save(label_batch, "data/text/embeddings/label_batch.pth")
+
+    return data_batch, label_batch
 
 
 if __name__ == "__main__":
@@ -255,35 +222,58 @@ if __name__ == "__main__":
 #   print(modelParams)
 
 
-    # embed_dim = 100
+    embed_dim = 100
 
-    # # w = "hello"
-    # # embed_word = encode_word(w, embed_dim)
-    # # print(embed_word)
-    # # unembed_word = decode_vector(embed_word, embed_dim)
-    # # print(unembed_word)
+    # w = "end"
+    # embed_word = encode_word(w, embed_dim)
+    # print(embed_word)
+    # unembed_word = decode_vector(embed_word, embed_dim)
+    # print(unembed_word)
+    # torch.save(embed_word, "data/text/embeddings/end_line.pth")
+    # end_line_tensor = torch.load("data/text/embeddings/end_line.pth")
+    # print(end_line_tensor)
 
 
-    # # with open("data/input.txt", "r") as f:
-    # #     txt = f.read()
-    # # sentence = txt
+    # with open("data/text/sentence.txt", "r") as f:
+    #     txt = f.read()
+    # sentence = txt
+    # print(sentence)
 
-    # sentence = "hello my name is derek"
-    # embed_sentence = encode_sentence(sentence, embed_dim)
-    # # print(embed_sentence)
-    # unembed_sentence = decode_sentence(embed_sentence, embed_dim)
+    # # sentence = "hello my name is derek"
+    # embed_sentence = encodeSentence(sentence, embed_dim)
+    # print(embed_sentence)
+    # unembed_sentence = decodeSentence(embed_sentence, embed_dim)
     # print(unembed_sentence)
 
 
-    t, X = genSineWave(100, 1, 1, 2*np.pi, 10, vary_phase=True, add_noise=False)
-    print(t.shape)
-    print(t[0, :, 0].shape)
-    print(X.shape)
-    print(X[0, :, 0].shape)
-    for ti, Xi in zip(t, X):
-        print(ti.shape)
-        plt.plot(ti[:, 0], Xi[:, 0])
-        plt.show()
+
+
+    # with open("data/text/paragraph.txt", "r") as f:
+    #     txt = f.readlines()
+    # paragraph = txt
+    # print(paragraph)
+
+    # embed_paragraph = encodeParagraph(paragraph, embed_dim)
+    # print(embed_paragraph.shape)
+
+    embed_paragraph = torch.load("data/text/embeddings/data_batch.pth")[:5]
+    unembed_paragraph = decodeParagraph(embed_paragraph, embed_dim)
+    print(unembed_paragraph)
+
+
+    # genTextTrainingData(paragraph, embed_dim)
+
+
+
+    # t, X = genSineWave(100, 1, 1, 2*np.pi, 10, vary_dt=True, vary_phase=True, add_noise=False)
+    # print(t.shape)
+    # print(t[0, :, 0].shape)
+    # print(X.shape)
+    # print(X[0, :, 0].shape)
+    # for ti, Xi in zip(t, X):
+    #     print(ti.shape)
+    #     plt.plot(ti[:, 0], Xi[:, 0])
+    #     plt.show()
 
 
     # t1, X1 = genSineWave(100, 1, 1, 2*np.pi, 10, phase=np.pi, add_noise=False)

@@ -235,9 +235,7 @@ class Network:
 
 
   def MSELoss(self, pred_batch, target_batch):
-    # print(pred_batch.shape)
-    # print(target_batch.shape)
-    # print((pred_batch - target_batch).shape)
+    
     errs = (pred_batch - target_batch)**2
     mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) if self.batch_size else (1/pred_batch.shape[0])*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
     mse_loss_reduced = self.reduce(mse_loss)

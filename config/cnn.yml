@@ -5,12 +5,6 @@ specs:
   # pretrained: true
   input_data_dim: [1, 64, 64] # [color_channels, img_height, img_width]
 
-# specs:
-#   multi_out: false
-#   device_type: "cpu"
-#   mode: "train"
-#   pretrained: false
-#   input_data_dim: [1, 64, 64] # [color_channels, img_height, img_width]
 
 #------------------------------------------------------------------------------------------------------------------------
 train:
