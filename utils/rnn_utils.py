@@ -10,34 +10,23 @@ import matplotlib.pyplot as plt
 
 
 
-# def genSineWave(time_steps, freq, amp, T, phase=0, add_noise=False):
-#     t = torch.linspace(0, T, time_steps)
-#     X = amp * torch.sin(freq * t + phase)
-#     if add_noise:
-#         X += torch.from_numpy(np.random.normal(0, 0.01, t.shape)).float()
-#     return t.unsqueeze(1), X.unsqueeze(1)
-
-
-# def genSineWave(time_steps, freq, amp, T, add_noise=False):
-#     if add_noise: t = torch.sort(torch.rand(time_steps) * T).values
-#     else: t = torch.linspace(0, T, time_steps)
-#     X = amp * torch.sin(freq * t)
-#     return t.unsqueeze(1), X.unsqueeze(1)
-
-
-# def genSineWave(time_steps, freq, amp, T, batch_size, phase=0, add_noise=False):
-#     t = torch.sort(torch.rand(batch_size, time_steps, 1) * T, dim=1).values
-#     X = amp * torch.sin(freq * t + phase)
-#     if add_noise:
-#         X += torch.from_numpy(np.random.normal(0, 0.01, t.shape)).float()
-#     return t, X
-
 def genSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_noise=False):
     t = torch.sort(torch.rand(batch_size, time_steps, 1) * T, dim=1).values if vary_dt else torch.linspace(0, T, time_steps).unsqueeze(0).unsqueeze(-1).repeat(batch_size, 1, 1)
     arg = freq*(t)
     if vary_phase:
         arg += (torch.rand(batch_size, 1)*np.pi).unsqueeze(1).repeat(1, time_steps, 1)
     X = amp * torch.sin(arg)
+    if add_noise:
+        X += torch.from_numpy(np.random.normal(0, 0.01, t.shape)).float()
+    return t, X
+
+def genDecayingSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_noise=False):
+    t = torch.sort(torch.rand(batch_size, time_steps, 1) * T, dim=1).values if vary_dt else torch.linspace(0, T, time_steps).unsqueeze(0).unsqueeze(-1).repeat(batch_size, 1, 1)
+    arg = 2*np.pi*(t)
+    if vary_phase:
+        arg += (torch.rand(batch_size, 1)*np.pi).unsqueeze(1).repeat(1, time_steps, 1)
+    X = amp * torch.exp((-1/(2**(1/2)))*t) * torch.cos(arg)
+    # X = amp * torch.exp((1/(2**(1/2)))*t) * torch.cos(arg)
     if add_noise:
         X += torch.from_numpy(np.random.normal(0, 0.01, t.shape)).float()
     return t, X
@@ -256,24 +245,20 @@ if __name__ == "__main__":
     # embed_paragraph = encodeParagraph(paragraph, embed_dim)
     # print(embed_paragraph.shape)
 
-    embed_paragraph = torch.load("data/text/embeddings/data_batch.pth")[:5]
-    unembed_paragraph = decodeParagraph(embed_paragraph, embed_dim)
-    print(unembed_paragraph)
+    # embed_paragraph = torch.load("data/text/embeddings/data_batch.pth")[:5]
+    # unembed_paragraph = decodeParagraph(embed_paragraph, embed_dim)
+    # print(unembed_paragraph)
 
 
     # genTextTrainingData(paragraph, embed_dim)
 
 
 
-    # t, X = genSineWave(100, 1, 1, 2*np.pi, 10, vary_dt=True, vary_phase=True, add_noise=False)
-    # print(t.shape)
-    # print(t[0, :, 0].shape)
-    # print(X.shape)
-    # print(X[0, :, 0].shape)
-    # for ti, Xi in zip(t, X):
-    #     print(ti.shape)
-    #     plt.plot(ti[:, 0], Xi[:, 0])
-    #     plt.show()
+    t, X = genSineWave(500, 10, 1, 2*np.pi, 10, vary_dt=True, vary_phase=True, add_noise=True)
+    for ti, Xi in zip(t, X):
+        plt.plot(ti[:, 0], Xi[:, 0])
+        plt.grid(True)
+        plt.show()
 
 
     # t1, X1 = genSineWave(100, 1, 1, 2*np.pi, 10, phase=np.pi, add_noise=False)

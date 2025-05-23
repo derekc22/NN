@@ -53,3 +53,36 @@ rnn-text (05/22/2025)
    - as stated above, this model is not autoregressive. It does not pass its own previous output back in as the input for the next time step
    - rather, it uses the entire input data sequence to predict the next character in the sequence
    - this work can be extended down the line by adding autoregressive capabilities to the model
+
+
+rnn-auto-regressive (05/23/2025)
+   - successfully (?) added autoregressive capabilities to rnn model
+   -- logic seems to be correct, but the model does not train properly, no matter what
+   -- tried to remedy this problem by adding a 'teacher forcing' mechanism (progressive, regressive, etc), but to no avail
+   -- will pause on rnn development for now and move on to lstm
+
+   - working on this auto-regressive model revealed a logical bug in the original rnn model:
+   -- t, X = genSineWave() is what is returned from the genSineWave() function
+   -- in the non autoregressive model, t is used as the input to the model, which may be incorrect for the use case of rnns
+   -- in this case, the model essentially learns a mapping from t to X, which is not the intended use case (i believe)
+   -- the intended use case of these sequential models is to take some input sequence and predict the next element in the sequence
+   -- thus, since t is not even 'in the space' of X, it is not a valid input to the model. that is my thinking 
+   -- perhaps an analogy is dimensional homogeneity in an physics. t is not dimensionally homogeneous with X as 't' is a time variable and 'X' is a spatial variable
+   -- thus, attempting to predict the next X from a value of t may not be a valid use case for an rnn or other sequential model
+   -- perhaps this is what chatGPT meant when it said my original rnn model was an 'autoencoder' (or at least something similar)
+   -- i believe that, if i want to predict the next X, the input to the model should be a sequence of X values, not t values
+   -- thus, in the autoregressive model, X is directly fed into the model
+
+   - one last thing to note about my two implementations (for documentation purposes)
+   -- In the non autoregressive model, the only thing passed from t -> t+1 -> t+2 -> ... -> t+n is the 'hidden state' of the model
+   -- In the autoregressive model, not only is the hidden state passed from t -> t+1 -> t+2 -> ... -> t+n, but also the output at the current time step
+
+   - added decaying sine wave data generation function (genDecayingSineWave())
+   -- non autoregressive rnn model performs worse on this data than on the regular sine wave data
+   -- in fact, both models (autoregressive and non autoregressive) perform worse on this data than on the regular sine wave data
+   -- furthermore, when the equation is changed from  y=exp(-t)*sin(t) to y=exp(t)*sin(t) (that is, a growing sine wave instead of a decaying sine wave), both models perform even even worse
+
+   - added logging script (utils/logger.py) to log config files after training
+   -- added this script to 'run.sh' such that it runs automatically after training
+
+   - added save_fpath argument to all models such that weights can be saved to a loaded from more from more flexible locations

@@ -22,13 +22,14 @@ pretrained = args.pretrained #specs["pretrained"]
 input_feature_count = specs["input_feature_count"]
 # time_steps = specs["time_steps"]
 stateful = specs["stateful"]
+auto_regressive = specs["auto_regressive"]
 
-parameters = config["parameters_fpath"]
+parameters_fpath = config["parameters_fpath"]
 architecture = config["architecture"]
 
 freq = 2
 amp = 1
-time_steps = 200
+time_steps = 500
 T = 2*np.pi
 
 # Training mode
@@ -45,9 +46,10 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetchRNNParametersFromFile(device_type, parameters),
+            model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
-            num_sequences=train_dataset_size,
+            auto_regressive=auto_regressive,
+            # num_sequences=train_dataset_size,
         )
         
     else:
@@ -59,10 +61,13 @@ if mode == "train":
             architecture=architecture,
             input_feature_count=input_feature_count,
             stateful=stateful,
-            num_sequences=train_dataset_size,
+            auto_regressive=auto_regressive,
+            save_fpath=parameters_fpath,
+            # num_sequences=train_dataset_size,
         )
         
     t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
     data_batch = t
     label_batch = X
     plt.plot(data_batch[0].squeeze(), label_batch[0].squeeze())
@@ -79,6 +84,7 @@ else:
     test_dataset_size = test_config["test_dataset_size"]
 
     t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
     data_batch = t
     label_batch = X
 
@@ -86,9 +92,10 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetchRNNParametersFromFile(device_type, parameters),
+        model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
         stateful=stateful,
-        num_sequences=test_dataset_size,
+        auto_regressive=auto_regressive,
+        # num_sequences=test_dataset_size,
     )
 
     prediction_batch = rnn.inference(data_batch)#.detach()

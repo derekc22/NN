@@ -16,15 +16,22 @@ args = parser.parse_args()
 config = load_config(args.config)
 
 specs = config["specs"]
-device_type = specs["device_type"] 
-mode = args.mode 
-pretrained = args.pretrained 
+device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
+mode = args.mode #specs["mode"]
+pretrained = args.pretrained #specs["pretrained"]
 input_feature_count = specs["input_feature_count"]
+# time_steps = specs["time_steps"]
 stateful = specs["stateful"]
+auto_regressive = specs["auto_regressive"]
+teacher_forcing = specs["teacher_forcing"]
 
 parameters_fpath = config["parameters_fpath"]
 architecture = config["architecture"]
 
+freq = 2
+amp = 1
+time_steps = 500
+T = 2*np.pi
 
 # Training mode
 if mode == "train":
@@ -42,7 +49,9 @@ if mode == "train":
             hyperparameters=hyperparameters,
             model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
-            num_sequences=train_dataset_size,
+            # num_sequences=train_dataset_size,
+            auto_regressive=auto_regressive,
+            teacher_forcing=teacher_forcing,
         )
         
     else:
@@ -54,15 +63,20 @@ if mode == "train":
             architecture=architecture,
             input_feature_count=input_feature_count,
             stateful=stateful,
-            num_sequences=train_dataset_size,
+            # num_sequences=train_dataset_size,
+            auto_regressive=auto_regressive,
+            teacher_forcing=teacher_forcing,
             save_fpath=parameters_fpath,
         )
-
-
-
-    data_batch = torch.load("data/text/embeddings/data_batch.pth")[:train_dataset_size]
-    label_batch = torch.load("data/text/embeddings/label_batch.pth")[:train_dataset_size]
         
+    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
+    # data_batch = torch.empty_like(X)
+    # data_batch[:, 0, :] = X[:, 0, :]
+    data_batch = X
+    label_batch = X
+
+
     (epoch_plt, loss_plt) = rnn.train(data_batch, label_batch, epochs, save_params=True)
     if epoch_plt and show_plot:
         plotTrainingResults(epoch_plt, loss_plt)
@@ -73,6 +87,12 @@ else:
     test_config = config["test"]
     test_dataset_size = test_config["test_dataset_size"]
 
+    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
+    # data_batch = torch.empty_like(X)
+    # data_batch[:, 0, :] = X[:, 0, :]
+    data_batch = X
+    label_batch = X
 
     rnn = RNN(
         pretrained=True,
@@ -80,15 +100,12 @@ else:
         device_type=device_type,
         model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
         stateful=stateful,
-        num_sequences=test_dataset_size,
+        # num_sequences=test_dataset_size,
+        auto_regressive=auto_regressive
     )
 
-    data_batch = torch.load("data/text/embeddings/data_batch.pth")[:test_dataset_size]
-    prediction_batch = rnn.inference(data_batch)
-
-    decoded_sentence = decodeParagraph(prediction_batch, input_feature_count)
-    print(decoded_sentence)
-
+    prediction_batch = rnn.inference(data_batch)#.detach()
+    printRegressionResults(t, prediction_batch, label_batch)
 
 
 

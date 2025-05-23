@@ -23,6 +23,8 @@ input_data_dim = tuple(specs["input_data_dim"])
 color_channels, img_height, img_width = input_data_dim
 
 parameters = config["parameters"]
+cnn_parameters_fpath = parameters["cnn_parameters_fpath"]
+mlp_parameters_fpath = parameters["mlp_parameters_fpath"]
 architecture = config["architecture"]
 
 
@@ -54,8 +56,8 @@ if mode == "train":
             device_type=device_type,
             hyperparameters=cnn_hyperparameters,
             mlp_hyperparameters=mlp_hyperparameters,
-            cnn_model_params=fetchCNNParametersFromFile(device_type, parameters["cnn_parameters_fpath"]),
-            mlp_model_params=fetchMLPParametersFromFile(device_type, parameters["mlp_parameters_fpath"])
+            cnn_model_params=fetchCNNParametersFromFile(device_type, cnn_parameters_fpath),
+            mlp_model_params=fetchMLPParametersFromFile(device_type, mlp_parameters_fpath),
         )
     else:
         cnn = CNN(
@@ -66,7 +68,9 @@ if mode == "train":
             mlp_hyperparameters=mlp_hyperparameters,
             cnn_architecture=architecture["cnn_architecture"],
             mlp_architecture=architecture["mlp_architecture"],
-            input_data_dim=input_data_dim
+            input_data_dim=input_data_dim,
+            cnn_save_fpath=cnn_parameters_fpath,
+            mlp_save_fpath=mlp_parameters_fpath,
         )
 
     (epoch_plt, loss_plt) = cnn.train(img_batch, label_batch, epochs, save_params=True)

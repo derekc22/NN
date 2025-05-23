@@ -17,6 +17,7 @@ class MLP(Network):
       self.input_feature_count = kwargs.get("input_feature_count")
       self.checkConfig(architecture=architecture)
       self.layers = self.buildLayers(architecture=architecture) #or mlp_architecture.get("input_data_dim"))
+      self.save_fpath = kwargs.get("save_fpath")
     else:
       self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
 
@@ -63,11 +64,11 @@ class MLP(Network):
 
 
   def saveParameters(self):
-    os.makedirs('params/paramsMLP', exist_ok=True)
+    os.makedirs(f"{self.save_fpath}", exist_ok=True)
     for layer in self.layers:
       layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
-      torch.save(layer.weights, f"./params/paramsMLP/layer_{layer.index}_weights_{layer.nonlinearity}.pth")
-      torch.save(layer.biases, f"./params/paramsMLP/layer_{layer.index}_biases_{layer.nonlinearity}.pth")
+      torch.save(layer.weights, f"{self.save_fpath}/layer_{layer.index}_weights_{layer.nonlinearity}.pth")
+      torch.save(layer.biases, f"{self.save_fpath}/layer_{layer.index}_biases_{layer.nonlinearity}.pth")
 
 
 

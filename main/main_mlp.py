@@ -18,7 +18,7 @@ mode = mode = args.mode #specs["mode"]
 pretrained = args.pretrained #specs["pretrained"]
 input_feature_count = specs["input_feature_count"]
 
-parameters = config["parameters_fpath"]
+parameters_fpath = config["parameters_fpath"]
 architecture = config["architecture"]
 
 
@@ -40,7 +40,7 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetchMLPParametersFromFile(device_type, parameters)
+            model_params=fetchMLPParametersFromFile(device_type, parameters_fpath),
         )
     else:
         mlp = MLP(
@@ -49,7 +49,8 @@ if mode == "train":
             device_type=device_type,
             hyperparameters=hyperparameters,
             architecture=architecture,
-            input_feature_count=input_feature_count
+            input_feature_count=input_feature_count,
+            save_fpath=parameters_fpath,
         )
 
     (epoch_plt, loss_plt) = mlp.train(data_batch, label_batch, epochs, save_params=True)
@@ -68,7 +69,7 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetchMLPParametersFromFile(device_type, parameters),
+        model_params=fetchMLPParametersFromFile(device_type, parameters_fpath),
     )
 
     prediction_batch = mlp.inference(data_batch)

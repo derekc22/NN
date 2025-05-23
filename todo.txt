@@ -7,3 +7,4 @@
 
 05/22/2025
     - make rnn_text.py autoregressive
+    - integrate and test gradient clipping in other models' backward() methods
