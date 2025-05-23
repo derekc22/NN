@@ -2,5 +2,5 @@
 /params
 __pycache__/
 .DS_Store
-/figures
 /logs
+/figures
