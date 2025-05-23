@@ -21,8 +21,8 @@ def printRegressionResults(t, prediction_batch, label_batch):
     for ti, Yi, Xi,in zip(t, prediction_batch, label_batch):
       fig, ax1 = plt.subplots()
       ax2 = ax1.twinx()
-      ax1.scatter(ti, Xi, label='ground truth', color='C0')
-      ax2.scatter(ti, Yi, label='prediction', color='C1')
+      ax1.plot(ti, Xi, label='ground truth', color='C0')
+      ax2.plot(ti, Yi, label='prediction', color='C1')
       ax1.set_ylabel('ground truth')
       ax2.set_ylabel('prediction')
       rmse_ = rmse(Xi.squeeze(), Yi.squeeze())

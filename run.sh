@@ -22,7 +22,10 @@ fi
 echo "Starting ${MODEL_NAME} training..."
 python3 -m main.main_${MODEL_NAME} --config "${CONFIG_PATH}" --mode train ${PRETRAINED_FLAG}
 
-echo "Training completed. Starting ${MODEL_NAME} testing..."
+echo "Training completed. Logging..."
+python3 -m utils.logger --model "${MODEL_NAME}"
+
+echo "Starting ${MODEL_NAME} testing..."
 python3 -m main.main_${MODEL_NAME} --config "${CONFIG_PATH}" --mode test
 
 echo "Testing completed."

@@ -12,13 +12,16 @@ class RNN(Network):
         super().__init__(model_type="rnn", training=training, kwargs=kwargs)
 
         self.device_type = torch.device(device_type)
-        self.stateful = kwargs.get("stateful")
+        self.stateful = kwargs.get("stateful", False)
+        self.auto_regressive = kwargs.get("auto_regressive", False)
+        self.teacher_forcing = kwargs.get("teacher_forcing")
         # self.num_sequences = kwargs.get("num_sequences")
 
         if not pretrained:
             architecture = kwargs.get("architecture")
             self.input_feature_count = kwargs.get("input_feature_count")
             self.layers = self.buildLayers(architecture=architecture)
+            self.save_fpath = kwargs.get("save_fpath")
         else:
             self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
 
@@ -108,56 +111,21 @@ class RNN(Network):
     
 
     def saveParameters(self):
-        os.makedirs('params/paramsRNN', exist_ok=True)
+        os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
             layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             if layer.type == "hidden":
-                torch.save(layer.wxh, f"./params/paramsRNN/layer_{layer.index}_wxh.pth")
-                torch.save(layer.whh, f"./params/paramsRNN/layer_{layer.index}_whh_{layer.whh_nonlinearity}.pth")
-                torch.save(layer.bh, f"./params/paramsRNN/layer_{layer.index}_bh.pth")
+                torch.save(layer.wxh, f"{self.save_fpath}/layer_{layer.index}_wxh.pth")
+                torch.save(layer.whh, f"{self.save_fpath}/layer_{layer.index}_whh_{layer.whh_nonlinearity}.pth")
+                torch.save(layer.bh, f"{self.save_fpath}/layer_{layer.index}_bh.pth")
             elif layer.type == "output":
-                torch.save(layer.wxh, f"./params/paramsRNN/layer_{layer.index}_wxh_{layer.why_nonlinearity}.pth")
-                torch.save(layer.by, f"./params/paramsRNN/layer_{layer.index}_by.pth")
+                torch.save(layer.wxh, f"{self.save_fpath}/layer_{layer.index}_wxh_{layer.why_nonlinearity}.pth")
+                torch.save(layer.by, f"{self.save_fpath}/layer_{layer.index}_by.pth")
 
 
  
 
 
-    # def forward(self, X, training):
-
-    #     ht1_l = [layer.ht1 for layer in self.layers[:-1]]                
-    #     whh_l = [layer.whh for layer in self.layers[:-1]]
-    #     wxh_l = [layer.wxh for layer in self.layers]
-    #     bh_l  = [layer.bh  for layer in self.layers[:-1]]
-    #     why   = self.layers[-1].wxh
-    #     by    = self.layers[-1].by
-
-    #     T = X.shape[0] 
-    #     output_feature_count = by.shape[0]
-    #     Y = torch.zeros(T, output_feature_count, device=X.device)
-
-    #     for t in range(T):
-    #         x = X[t]
-
-    #         ht_l = [None] * len(ht1_l)
-    #         ht_l[0] = Layer.staticActivate(
-    #             torch.matmul(ht1_l[0], whh_l[0]) + bh_l[0] + 
-    #             torch.matmul(x, wxh_l[0]), self.whh_nonlinearity)
-
-    #         for i in range(1, len(ht_l)):
-    #             ht_l[i] = Layer.staticActivate(
-    #                 torch.matmul(ht1_l[i], whh_l[i]) + bh_l[i] +
-    #                 torch.matmul(ht_l[i-1], wxh_l[i]), self.whh_nonlinearity)
-
-    #         Y[t] = Layer.staticActivate( 
-    #             torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
-
-    #         ht1_l = ht_l
-
-    #     for layer, h in zip(self.layers[:-1], ht1_l):
-    #         layer.ht1 = h.detach()
-
-    #     return Y
 
     def zero_state(self, num_sequences):
         return [torch.zeros(
@@ -248,7 +216,10 @@ class RNN(Network):
 
 
 
-    def forward(self, X, training):
+    def forwardNonAutoRegressive(self, X, training):
+        """
+        No autoregressive handling - working
+        """
         
         T = X.shape[1] 
         num_sequences = X.shape[0]
@@ -290,13 +261,85 @@ class RNN(Network):
                 layer.ht1 = ht1_i.detach()
 
         return Y
-    
+ 
+
+    def forwardAutoRegressive(self, X, training):
+        
+        T = X.shape[1] 
+        num_sequences = X.shape[0]
+
+        if self.stateful: 
+            for layer in self.layers[:-1]: 
+                layer.generate_state(num_sequences)
+
+        ht1_l = [layer.ht1 for layer in self.layers[:-1]] if self.stateful else self.zero_state(num_sequences)
+        whh_l = [layer.whh for layer in self.layers[:-1]]
+        wxh_l = [layer.wxh for layer in self.layers]
+        bh_l  = [layer.bh  for layer in self.layers[:-1]]
+        why = self.layers[-1].wxh
+        by = self.layers[-1].by
+
+        output_feature_count = by.shape[0]
+        Y = torch.zeros(num_sequences, T, output_feature_count, device=X.device)
+
+        x = X[:, 0, :]
+        # print(x.shape)
+        # exit()
+        for t in range(T):
+
+            ht_l = [None] * len(ht1_l)
+            ht_l[0] = Layer.staticActivate(
+                torch.matmul(ht1_l[0], whh_l[0]) + bh_l[0] + 
+                torch.matmul(x, wxh_l[0]), self.whh_nonlinearity)
+
+            for i in range(1, len(ht_l)):
+                ht_l[i] = Layer.staticActivate(
+                    torch.matmul(ht1_l[i], whh_l[i]) + bh_l[i] +
+                    torch.matmul(ht_l[i-1], wxh_l[i]), self.whh_nonlinearity)
+
+            y = Layer.staticActivate( 
+                torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
+            Y[:, t, :] = y
+            # print(y.shape)
+
+            ht1_l = ht_l
+
+            teacher_forcing_factor = (
+                self.epoch/self.epochs if (self.teacher_forcing == "progressive") # progressive teacher-forcing
+                else 1 - self.epoch/self.epochs if (self.teacher_forcing == "regressive") # regressive teacher-forcing
+                else float(self.teacher_forcing) if isinstance(self.teacher_forcing, (int, float)) 
+                else 0
+            )
+
+
+            x = X[:, t, :] if (training and t < teacher_forcing_factor*T) else y.detach()
+
+            # print(x.shape)
+            # exit()
+
+        if self.stateful:
+            for (layer, ht1_i) in zip(self.layers[:-1], ht1_l):
+                layer.ht1 = ht1_i.detach()
+
+        return Y
+
+
+    def forward(self, X, training):
+        if self.auto_regressive: #or not training:
+            return self.forwardAutoRegressive(X, training)
+        return self.forwardNonAutoRegressive(X, training)
+
+
+
+
 
     def backprop(self, loss):
         self.zerograd()
 
         loss.backward()
-        self.clipGradients()
+
+        if self.grad_clip_norm is not None or self.grad_clip_value is not None:
+            self.clipGradients()
 
         with torch.no_grad():
 

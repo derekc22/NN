@@ -8,6 +8,8 @@ class Network:
   def __init__(self, model_type, training, kwargs):
 
     self.model_type = model_type
+    self.epoch = 0 # temp hack (should ideally be under the 'if training' block) for the rnn implementation. update later
+    self.epochs = -1 # temp hack (should ideally be under the 'if training' block) for the rnn implementation. update later
 
     if training:
       hyperparameters = kwargs.get("hyperparameters")
@@ -95,10 +97,11 @@ class Network:
 
     epoch_plt = []
     loss_plt = []
+    self.epochs = epochs
 
     # epochs = (epochs or (data.size(dim=0/self.batch_size)))
 
-    for epoch in range(1, int(epochs+1)):
+    for epoch in range(epochs): #range(1, int(epochs+1)):
       
       data_batch, target_batch = self.batch(data, target)
       pred_batch = self.forward(data_batch, training=True)
@@ -113,11 +116,15 @@ class Network:
 
       epoch_plt.append(epoch)
       loss_plt.append(loss.item())
-      print(f"epoch = {epoch}, loss = {loss} ")
+      print(f"epoch = {epoch+1}, loss = {loss} ")
       print(f"__________________________________________")
+      
+      self.epoch = epoch
 
 
-    self.saveParameters() if save_params else None
+    if save_params:
+      self.saveParameters()
+      
     return epoch_plt, loss_plt
 
 

@@ -16,9 +16,11 @@ class CNN(Network):
       architecture = kwargs.get("cnn_architecture")
       self.checkConfig(architecture=architecture)
       self.layers = self.buildLayers(architecture=architecture)
+      self.save_fpath = kwargs.get("cnn_save_fpath")
+      mlp_save_fpath = kwargs.get("mlp_save_fpath")
 
       mlp_input_feature_count = self.calcMLPInputSize(kwargs.get("input_data_dim"))
-      self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=mlp_input_feature_count, architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"))
+      self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=mlp_input_feature_count, architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
     else:
       self.layers = self.loadLayers(kwargs.get("cnn_model_params"))
       self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"))
@@ -71,12 +73,11 @@ class CNN(Network):
 
 
   def saveParameters(self):
-    os.makedirs('params/paramsCNN', exist_ok=True)
-    os.makedirs('params/paramsMLP', exist_ok=True)
+    os.makedirs(f"{self.save_fpath}", exist_ok=True)
     for layer in self.layers:
       layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
-      torch.save(layer.kernels, f"./params/paramsCNN/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.is_conv_layer}_{layer.kernel_stride}.pth")
-      torch.save(layer.biases, f"./params/paramsCNN/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.is_conv_layer}_{layer.kernel_stride}.pth")
+      torch.save(layer.kernels, f"{self.save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.is_conv_layer}_{layer.kernel_stride}.pth")
+      torch.save(layer.biases, f"{self.save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.is_conv_layer}_{layer.kernel_stride}.pth")
 
     self.MLP.saveParameters()
 
