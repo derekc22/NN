@@ -1,37 +1,31 @@
+architecture:
+  hidden_activation_function: sigmoid
+  hidden_state_neuron_counts:
+  - 64
+  output_activation_function: none
+  output_feature_count: 1
+hyperparameters:
+  batch_size: 64
+  dropout_rate: null
+  grad_clip_norm: null
+  grad_clip_value: null
+  lambda_L2: null
+  learn_rate: 0.01
+  loss_func: MSELoss
+  optimizer: adam
+  reduction: mean
+log_id: logs/2025-05-27_00:18:06_auto_regressive_rnn
+parameters_fpath: ./params/paramsRNN/auto_regressive
 specs:
-  device_type: "cpu"
+  auto_regressive: true
+  device_type: cpu
   input_feature_count: 1
   stateful: false
-  auto_regressive: true
-  teacher_forcing: 1 # "progressive", "regressive", ~, [0: no teacher forcing, 1: full teacher forcing )
-
-#------------------------------------------------------------------------------------------------------------------------
-train:
-  epochs: 500
-  train_dataset_size: 500
-  show_loss_plot: true
-
-hyperparameters:
-    learn_rate: 0.01
-    batch_size: 64 # Keep this as None to avoid shuffling data. temporal relationships are important in RNNs
-    loss_func: "MSELoss"
-    reduction: "mean"
-    optimizer: "adam"
-    lambda_L2: ~ # 0.0001
-    dropout_rate: ~
-    grad_clip_norm: ~ # 5   # e.g. limit global norm to 5
-    grad_clip_value: ~ # 0.1  # e.g. clamp each grad element to ±0.1
-
-architecture:
-    # hidden_state_neuron_counts: [16, 32, 64]
-    hidden_state_neuron_counts: [64]
-    output_feature_count: 1
-    hidden_activation_function: "sigmoid"
-    output_activation_function: "none"
-
-#------------------------------------------------------------------------------------------------------------------------
+  teacher_forcing: regressive
 test:
+  show_results: true
   test_dataset_size: 50
-
-parameters_fpath: "./params/paramsRNN/auto_regressive"
-
+train:
+  epochs: 10000
+  show_loss_plot: true
+  train_dataset_size: 10000

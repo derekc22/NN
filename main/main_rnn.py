@@ -1,6 +1,7 @@
 import torch
 from utils.data import *
 from utils.rnn_utils import *
+from utils.logger import load_config
 from models.rnn import RNN
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ args = parser.parse_args()
 
 
 config = load_config(args.config)
+log_id = config['log_id']
 
 specs = config["specs"]
 device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +51,7 @@ if mode == "train":
             model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
             auto_regressive=auto_regressive,
-            # num_sequences=train_dataset_size,
+            # batch_size=train_dataset_size,
         )
         
     else:
@@ -63,10 +65,10 @@ if mode == "train":
             stateful=stateful,
             auto_regressive=auto_regressive,
             save_fpath=parameters_fpath,
-            # num_sequences=train_dataset_size,
+            # batch_size=train_dataset_size,
         )
         
-    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
+    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
     data_batch = t
     label_batch = X
@@ -75,15 +77,16 @@ if mode == "train":
 
     (epoch_plt, loss_plt) = rnn.train(data_batch, label_batch, epochs, save_params=True)
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt)
+        plotTrainingResults(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 
 else:
     test_config = config["test"]
     test_dataset_size = test_config["test_dataset_size"]
+    show_results = test_config["show_results"]
 
-    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
+    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
     data_batch = t
     label_batch = X
@@ -95,11 +98,11 @@ else:
         model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
         stateful=stateful,
         auto_regressive=auto_regressive,
-        # num_sequences=test_dataset_size,
+        # batch_size=test_dataset_size,
     )
 
     prediction_batch = rnn.inference(data_batch)#.detach()
-    printRegressionResults(t, prediction_batch, label_batch)
+    plotRegressionResults(t, prediction_batch, label_batch, log_id, show_results)
 
 
 

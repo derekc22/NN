@@ -40,28 +40,28 @@ class CNN(Network):
     layers = [ConvolutionalLayer(
       pretrained=True, 
       device_type=self.device_type, 
-      is_conv_layer=(is_conv_layer == "True"), 
+      type=layer_type, 
       pretrained_kernels=kernels, 
       pretrained_biases=biases, 
       nonlinearity=nonlinearity,
       kernel_stride=stride, 
-      index=index) for (is_conv_layer, kernels, biases, nonlinearity, stride, index) in model_params.values()]
+      index=index) for (layer_type, kernels, biases, nonlinearity, stride, index) in model_params.values()]
 
     return layers
 
 
   def buildLayers(self, architecture):
-    is_conv_layer = architecture.get("is_conv_layer")
+    layer_types = architecture.get("type")
     filter_counts = architecture.get("filter_counts")
     kernel_shapes = architecture.get("kernel_shapes")
     kernel_strides = architecture.get("kernel_strides")
     activation_functions = architecture.get("activation_functions")
-    num_layers = len(is_conv_layer)
+    num_layers = len(layer_types)
 
     layers = [ConvolutionalLayer(
       pretrained=False, 
       device_type=self.device_type, 
-      is_conv_layer=is_conv_layer[i], 
+      type=layer_types[i], 
       filter_count=filter_counts[i],
       kernel_shape=kernel_shapes[i], 
       kernel_stride=kernel_strides[i], 
@@ -76,8 +76,8 @@ class CNN(Network):
     os.makedirs(f"{self.save_fpath}", exist_ok=True)
     for layer in self.layers:
       layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
-      torch.save(layer.kernels, f"{self.save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.is_conv_layer}_{layer.kernel_stride}.pth")
-      torch.save(layer.biases, f"{self.save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.is_conv_layer}_{layer.kernel_stride}.pth")
+      torch.save(layer.kernels, f"{self.save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
+      torch.save(layer.biases, f"{self.save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
 
     self.MLP.saveParameters()
 
@@ -102,7 +102,7 @@ class CNN(Network):
   def forward(self, curr_input, training, dummy=False):  # maybe recursion would work for this?
 
     for layer in self.layers:
-      if layer.is_conv_layer:
+      if layer.type == "convolutional":
 
         curr_input = layer.convolve(curr_input)
 

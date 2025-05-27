@@ -1,6 +1,6 @@
 import torch
 from utils.data import *
-from src.recurrent_cell import RecurrentCell
+from rnn_cell import RecurrentCell
 from models.rnn import RNN
 
 # torch.manual_seed(42)

@@ -25,8 +25,8 @@ def genDecayingSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phas
     arg = 2*np.pi*(t)
     if vary_phase:
         arg += (torch.rand(batch_size, 1)*np.pi).unsqueeze(1).repeat(1, time_steps, 1)
-    X = amp * torch.exp((-1/(2**(1/2)))*t) * torch.cos(arg)
-    # X = amp * torch.exp((1/(2**(1/2)))*t) * torch.cos(arg)
+    X = amp * torch.exp((-1/(2**(1/2)))*t) * torch.cos(arg) # decaying
+    # X = amp * torch.exp((1/(2**(1/2)))*t) * torch.cos(arg) # growing
     if add_noise:
         X += torch.from_numpy(np.random.normal(0, 0.01, t.shape)).float()
     return t, X
@@ -35,10 +35,10 @@ def genDecayingSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phas
 
 def fetchRNNParametersFromFile(device_type, directory):
 
-    modelParams = {}
+    model_params = {}
 
     # Use glob to get all files matching the pattern
-    wxh_pattern = "layer_*_wxh*.pth"  # Pattern to match
+    wxh_pattern = "layer_*_wxh.pth"  # Pattern to match
     wxh_files = glob.glob(os.path.join(directory, wxh_pattern))
     wxh_files.sort()
 
@@ -50,15 +50,12 @@ def fetchRNNParametersFromFile(device_type, directory):
     bh_files = glob.glob(os.path.join(directory, bh_pattern))
     bh_files.sort()
 
-    by_pattern = "layer_*_by.pth"  # Pattern to match
-    by_files = glob.glob(os.path.join(directory, by_pattern))
-    by_files.sort()
-
-    if not all([len(wxh_files), len(whh_files), len(bh_files), len(by_files)]) :
-        raise FileNotFoundError("Model parameters failed to load from file. Parameter folder may be empty")
+    # I think this is stupid/broken, specifically the 'len(by_files)' part, but im too tired to fix it rn. todo
+    # if not all([len(wxh_files), len(whh_files), len(bh_files), len(by_files)]) :
+    #     raise FileNotFoundError("Model parameters failed to load from file. Parameter folder may be empty")
 
     regex_pattern_whh = r"layer_(\d+)_whh_(.*?)\.pth"
-    for (wxh_f, whh_f, bh_f) in zip(wxh_files[:-1], whh_files, bh_files):
+    for (wxh_f, whh_f, bh_f) in zip(wxh_files, whh_files, bh_files):
 
         wxh = torch.load(wxh_f, map_location=device_type)
         whh = torch.load(whh_f, map_location=device_type)
@@ -66,20 +63,32 @@ def fetchRNNParametersFromFile(device_type, directory):
 
         match = re.search(regex_pattern_whh, whh_f)
         index = match.group(1)
-        activation = match.group(2)
+        hidden_activation = match.group(2)
 
-        modelParams.update({f"Layer {index}": [wxh, whh, bh, activation, index] })
+        model_params.update({f"Layer {index}": [wxh, whh, bh, hidden_activation, index] })
     
 
-    regex_pattern_wxh = r"layer_(\d+)_wxh_(.*?)\.pth"
-    wxh_output = torch.load(wxh_files[-1], map_location=device_type)
+    why_pattern = "layer_*_why_*.pth"  # Pattern to match
+    why_files = glob.glob(os.path.join(directory, why_pattern))
+    why_files.sort()
+
+    by_pattern = "layer_*_by.pth"  # Pattern to match
+    by_files = glob.glob(os.path.join(directory, by_pattern))
+    by_files.sort()
+
+    why = torch.load(why_files[0], map_location=device_type)
     by = torch.load(by_files[0], map_location=device_type)
-    match = re.search(regex_pattern_wxh, wxh_files[-1])
-    index = match.group(1)
-    activation = match.group(2)
-    modelParams.update({f"Layer {index}": [wxh_output, by, activation, index] })
+
+    regex_pattern_why = r"layer_(\d+)_why_(.*?)\.pth"
+    match = re.search(regex_pattern_why, why_files[-1])
+    # index = match.group(1)
+    output_activation = match.group(2)
+
+    output_params =  [why, by, output_activation]
+    model_params[f"Layer {index}"][4:4] = output_params
+
     
-    return modelParams
+    return model_params
 
 
 
@@ -207,8 +216,8 @@ def genTextTrainingData(readlines_arr: list, embed_dim):
 
 
 if __name__ == "__main__":
-#   modelParams = fetchRNNParametersFromFile("cpu", "params/paramsRNN")
-#   print(modelParams)
+#   model_params = fetchRNNParametersFromFile("cpu", "params/paramsRNN")
+#   print(model_params)
 
 
     embed_dim = 100

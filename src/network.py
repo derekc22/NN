@@ -8,8 +8,6 @@ class Network:
   def __init__(self, model_type, training, kwargs):
 
     self.model_type = model_type
-    self.epoch = 0 # temp hack (should ideally be under the 'if training' block) for the rnn implementation. update later
-    self.epochs = -1 # temp hack (should ideally be under the 'if training' block) for the rnn implementation. update later
 
     if training:
       hyperparameters = kwargs.get("hyperparameters")
@@ -22,6 +20,8 @@ class Network:
       self.dropout_rate = hyperparameters.get("dropout_rate")
       self.grad_clip_norm  = hyperparameters.get('grad_clip_norm')
       self.grad_clip_value = hyperparameters.get('grad_clip_value')
+      self.epoch = None # temp hack (should ideally be under the 'if training' block) for the rnn implementation. update later
+      self.epochs = None # temp hack (should ideally be under the 'if training' block) for the rnn implementation. update later
 
 
 
@@ -34,16 +34,15 @@ class Network:
     """
     params = []
     for layer in self.layers:
-      if self.model_type == "cnn" and layer.is_conv_layer:
+      if self.model_type == "cnn" and layer.type == "convolutional":
         params.extend([layer.kernels, layer.biases])
       elif self.model_type == "mlp":
         params.extend([layer.weights, layer.biases])
       elif self.model_type == "rnn":
         params.append(layer.wxh)
-        if layer.type == "hidden":
-          params.extend([layer.whh, layer.bh])
-        elif layer.type == "output":
-          params.append(layer.by)
+        params.extend([layer.whh, layer.bh])
+        if layer.type == "output":
+          params.extend([layer.why, layer.by])
     return params
 
 
@@ -80,7 +79,27 @@ class Network:
       self.t = 0
       self.weight_moment_list = [[0, 0]]*self.num_layers
       self.bias_moment_list = [[0, 0]]*self.num_layers
-      self.other_moment_list = [[0, 0]]*self.num_layers
+      
+      if self.model_type == "rnn":
+        self.wxh_moment_list = [[0, 0]]*self.num_layers
+        # although only the output layer has why and by, 
+        # we must still multiply this list by self.num_layers since all of these moment lists are accessed via layer index
+        self.why_moment_list = [[0, 0]]*self.num_layers 
+        self.by_moment_list = [[0, 0]]*self.num_layers
+
+      elif self.model_type == "lstm":
+        self.wf_moment_list = [[0, 0]]*self.num_layers
+        self.wi_moment_list = [[0, 0]]*self.num_layers
+        self.wc_moment_list = [[0, 0]]*self.num_layers
+        self.wo_moment_list = [[0, 0]]*self.num_layers
+
+        self.bf_moment_list = [[0, 0]]*self.num_layers
+        self.bi_moment_list = [[0, 0]]*self.num_layers
+        self.bc_moment_list = [[0, 0]]*self.num_layers
+        self.bo_moment_list = [[0, 0]]*self.num_layers
+
+        self.why_moment_list = [[0, 0]]*self.num_layers
+        self.by_moment_list = [[0, 0]]*self.num_layers
 
 
 
@@ -102,6 +121,7 @@ class Network:
     # epochs = (epochs or (data.size(dim=0/self.batch_size)))
 
     for epoch in range(epochs): #range(1, int(epochs+1)):
+      self.epoch = epoch+1
       
       data_batch, target_batch = self.batch(data, target)
       pred_batch = self.forward(data_batch, training=True)
@@ -116,11 +136,9 @@ class Network:
 
       epoch_plt.append(epoch)
       loss_plt.append(loss.item())
-      print(f"epoch = {epoch+1}, loss = {loss} ")
+      print(f"epoch = {epoch+1}, loss = {loss}")
       print(f"__________________________________________")
       
-      self.epoch = epoch
-
 
     if save_params:
       self.saveParameters()
@@ -262,7 +280,7 @@ class Network:
 
     for layer in self.layers:
 
-      if self.model_type == "cnn" and layer.is_conv_layer:
+      if self.model_type == "cnn" and layer.type == "convolutional":
         layer.kernels -= self.learn_rate * layer.kernels.grad
         layer.biases -= self.learn_rate * layer.biases.grad
 
@@ -272,17 +290,37 @@ class Network:
 
       elif self.model_type == "rnn":
         layer.wxh -= self.learn_rate * layer.wxh.grad
-        if layer.type == "hidden":
-          layer.whh -= self.learn_rate * layer.whh.grad
-          layer.bh -= self.learn_rate * layer.bh.grad
-        elif layer.type == "output":
+        layer.whh -= self.learn_rate * layer.whh.grad
+        layer.bh -= self.learn_rate * layer.bh.grad
+
+        if layer.type == "output":
+          layer.why -= self.learn_rate * layer.why.grad
+          layer.by -= self.learn_rate * layer.by.grad
+
+      elif self.model_type == "lstm":
+        layer.wf -= self.learn_rate * layer.wf.grad
+        layer.wi -= self.learn_rate * layer.wi.grad
+        layer.wc -= self.learn_rate * layer.wc.grad
+        layer.wo -= self.learn_rate * layer.wo.grad
+
+        layer.bf -= self.learn_rate * layer.bf.grad
+        layer.bi -= self.learn_rate * layer.bi.grad
+        layer.bc -= self.learn_rate * layer.bc.grad
+        layer.bo -= self.learn_rate * layer.bo.grad
+
+        if layer.type == "output":
+          layer.why -= self.learn_rate * layer.why.grad
           layer.by -= self.learn_rate * layer.by.grad
 
 
 
   def adam(self, layer_index, gt, param_type, *args):
 
-    moment_list = self.weight_moment_list if param_type == "weight" else self.bias_moment_list if param_type == "bias" else self.other_moment_list
+    moment_list = (
+      self.weight_moment_list if param_type == "weight" 
+      else self.bias_moment_list if param_type == "bias" 
+      else getattr(self, f"{param_type}_moment_list")
+    )
 
     mt_1, vt_1 = moment_list[layer_index]
 
@@ -300,11 +338,6 @@ class Network:
 
     adam_grad = (self.learn_rate*mt_hat)/(torch.sqrt(vt_hat) + epsilon)
 
-    # print(mt_1.shape)
-    # print(gt.shape)
-    # print(mt_1)
-    # print(gt)
-
     return adam_grad
 
 
@@ -316,7 +349,7 @@ class Network:
 
     for layer in self.layers:
 
-      if self.model_type == "cnn" and layer.is_conv_layer:
+      if self.model_type == "cnn" and layer.type == "convolutional":
         # layer_index = self.layers.index(layer)
         layer_index = layer.index-1 # why am i not just doing this???
         layer.kernels -= optimizer_func(layer_index=layer_index, gt=layer.kernels.grad, param_type="weight")
@@ -332,12 +365,30 @@ class Network:
       elif self.model_type == "rnn":
         # layer_index = self.layers.index(layer)
         layer_index = layer.index-1 # why am i not just doing this???
-        layer.wxh -= optimizer_func(layer_index=layer_index, gt=layer.wxh.grad, param_type="weight")
-        if layer.type == "hidden":
-          layer.whh -= optimizer_func(layer_index=layer_index, gt=layer.whh.grad, param_type="other")
-          layer.bh -= optimizer_func(layer_index=layer_index, gt=layer.bh.grad, param_type="bias")
-        elif layer.type == "output":
-          layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="bias")
+        layer.wxh -= optimizer_func(layer_index=layer_index, gt=layer.wxh.grad, param_type="wxh")
+        layer.whh -= optimizer_func(layer_index=layer_index, gt=layer.whh.grad, param_type="weight")
+        layer.bh -= optimizer_func(layer_index=layer_index, gt=layer.bh.grad, param_type="bias")
+     
+        if layer.type == "output":
+          layer.why -= optimizer_func(layer_index=layer_index, gt=layer.why.grad, param_type="why")
+          layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="by")
+      
+      elif self.model_type == "lstm":
+        # layer_index = self.layers.index(layer)
+        layer_index = layer.index-1 # why am i not just doing this???
+        layer.wf -= optimizer_func(layer_index=layer_index, gt=layer.wf.grad, param_type="wf")
+        layer.wi -= optimizer_func(layer_index=layer_index, gt=layer.wi.grad, param_type="wi")
+        layer.wc -= optimizer_func(layer_index=layer_index, gt=layer.wc.grad, param_type="wc")
+        layer.wo -= optimizer_func(layer_index=layer_index, gt=layer.wo.grad, param_type="wo")
+
+        layer.bf -= optimizer_func(layer_index=layer_index, gt=layer.bf.grad, param_type="bf")
+        layer.bi -= optimizer_func(layer_index=layer_index, gt=layer.bi.grad, param_type="bi")
+        layer.bc -= optimizer_func(layer_index=layer_index, gt=layer.bc.grad, param_type="bc")
+        layer.bo -= optimizer_func(layer_index=layer_index, gt=layer.bo.grad, param_type="bo")
+
+        if layer.type == "output":
+          layer.why -= optimizer_func(layer_index=layer_index, gt=layer.why.grad, param_type="why")
+          layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="by")
 
 
 
@@ -349,12 +400,15 @@ class Network:
       weight_sum = 0
 
       for layer in self.layers:
-        if self.model_type == "cnn" and layer.is_conv_layer:
-          weight_sum += (torch.sum(layer.kernels ** 2))
+        if self.model_type == "cnn" and layer.type == "convolutional":
+          weight_sum += torch.sum(layer.kernels ** 2)
         elif self.model_type == "mlp":
-          weight_sum += (torch.sum(layer.weights ** 2))
+          weight_sum += torch.sum(layer.weights ** 2)
         elif self.model_type == "rnn":
-          weight_sum += (torch.sum(layer.wxh ** 2))
+          weight_sum += ( torch.sum(layer.wxh ** 2) + torch.sum(layer.whh ** 2) )
+          if layer.type == "output":
+            weight_sum += torch.sum(layer.why ** 2)
+          weight_sum = torch.mean(weight_sum)
 
 
       regularization = self.lambda_L2*weight_sum
@@ -395,7 +449,7 @@ class Network:
 
     for layer in self.layers:
 
-      if self.model_type == "cnn" and layer.is_conv_layer:
+      if self.model_type == "cnn" and layer.type == "convolutional":
         layer.kernels.grad = None
         layer.biases.grad = None
 
@@ -405,8 +459,21 @@ class Network:
 
       elif self.model_type == "rnn":
         layer.wxh.grad = None
-        if layer.type == "hidden":
-          layer.whh.grad = None
-          layer.bh.grad = None
-        elif layer.type == "output":
+        layer.whh.grad = None
+        layer.bh.grad = None
+        if layer.type == "output":
+          layer.why.grad = None
+          layer.by.grad = None
+
+      elif self.model_type == "lstm":
+        layer.wf.grad = None
+        layer.wi.grad = None
+        layer.wc.grad = None
+        layer.wo.grad = None
+        layer.bf.grad = None
+        layer.bi.grad = None
+        layer.bc.grad = None
+        layer.bo.grad = None
+        if layer.type == "output":
+          layer.why.grad = None
           layer.by.grad = None

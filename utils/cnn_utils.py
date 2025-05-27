@@ -208,7 +208,7 @@ def genPetImageStack(dataset_size, use, device_type, img_height, img_width, mult
 
 def fetchCNNParametersFromFile(device_type, directory):
 
-  modelParams = {}
+  model_params = {}
 
   # Use glob to get all files matching the pattern
   kernel_pattern = "cnn_layer_*_kernels_*_*_*.pth"  # Pattern to match
@@ -231,9 +231,9 @@ def fetchCNNParametersFromFile(device_type, directory):
 
     index = match.group(1)
     activation = match.group(2)
-    is_conv = match.group(3)
+    layer_type = match.group(3)
     stride = match.group(4)
 
-    modelParams.update({f"CNN Layer {index}": [is_conv, kernels, biases, activation, stride, index] })
+    model_params.update({f"CNN Layer {index}": [layer_type, kernels, biases, activation, stride, index] })
 
-  return modelParams
+  return model_params

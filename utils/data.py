@@ -15,25 +15,36 @@ def printClassificationResults(dataset_size, prediction_batch, label_batch):
     print(f"percent correct = {percent_correct.item()}%")
 
 
-def printRegressionResults(t, prediction_batch, label_batch):
-    print(prediction_batch.squeeze().shape)
+def plotRegressionCurves(ti, Yi, Xi):
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+    ax2 = ax1.twinx()
+    ax1.plot(ti, Xi, label='ground truth', color='C0')
+    ax2.plot(ti, Yi, label='prediction', color='C1')
+    ax1.set_ylabel('ground truth')
+    ax2.set_ylabel('prediction')
+    rmse_ = rmse(Xi.squeeze(), Yi.squeeze())
+    ax1.set_title(f"rmse: {rmse_}" )
+    fig.legend()
+      
 
-    for ti, Yi, Xi,in zip(t, prediction_batch, label_batch):
-      fig, ax1 = plt.subplots()
-      ax2 = ax1.twinx()
-      ax1.plot(ti, Xi, label='ground truth', color='C0')
-      ax2.plot(ti, Yi, label='prediction', color='C1')
-      ax1.set_ylabel('ground truth')
-      ax2.set_ylabel('prediction')
-      rmse_ = rmse(Xi.squeeze(), Yi.squeeze())
-      ax1.set_title(f"rmse: {rmse_}" )
-      fig.legend()
-      plt.show()
+def plotRegressionResults(t, prediction_batch, label_batch, save_dir, show_results):
+
+    for i, (ti, Yi, Xi) in enumerate(zip(t[:5], prediction_batch[:5], label_batch[:5])):
+      plotRegressionCurves(ti, Yi, Xi)  
+      plt.savefig(f'{save_dir}/regression_{i}.pdf')
+      plt.close()
+
+    if show_results:
+      for ti, Yi, Xi in zip(t, prediction_batch, label_batch):
+        plotRegressionCurves(ti, Yi, Xi)  
+        plt.show(block=False)
+        plt.pause(1.5)
+        plt.close()
 
 
 
 
-def plotTrainingResults(epoch_plt, loss_plt):
+def plotTrainingResults(epoch_plt, loss_plt, save_dir):
 
   epoch_plt = torch.tensor(epoch_plt)
   loss_plt = torch.tensor(loss_plt)
@@ -53,22 +64,9 @@ def plotTrainingResults(epoch_plt, loss_plt):
   pylab.plot(epoch_plt, p(epoch_plt), "r--")
 
 
-  plt.savefig('figures/loss_plot.pdf')
+  plt.savefig(f'{save_dir}/loss_plot.pdf')
 
   plt.show()
-
-
-
-
-
-
-def load_config(yaml_path):
-  with open(yaml_path, "r") as f:
-    return yaml.safe_load(f)
-
-
-
-
 
 
 

@@ -3,8 +3,20 @@
 
 05/18/2025
     - add validation loss tracking to the training loop
-    - !DONE! change mlp layer numbering to start from 01 instead of 02 (ie 'layer_01_weights_sigmoid' instead of 'layer_02_weights_sigmoid')
+    - (DONE: 05/18/2025) change mlp layer numbering to start from 01 instead of 02 (ie 'layer_01_weights_sigmoid' instead of 'layer_02_weights_sigmoid')
 
 05/22/2025
-    - make rnn_text.py autoregressive
+    - test rnn_text.py in autoregressive mode
     - integrate and test gradient clipping in other models' backward() methods
+    - register/wrap weights/biases in torch.nn.Parameter() so that Network._collect_parameters() can be replaced with a call to torch.nn.Module.parameters() when attempting to clip gradients
+
+05/25/2025
+    - (DONE: 05/25/2025) change 'self.is_conv_layer' in the cnn class to self.type == 'conv' or 'pool' to match the conventions of other architectures
+    - double check error checking fetchRNNParametersFromFile() in utils/rnn_utils.py
+
+05/26/2025
+    - save model weights as pkl instead of pth
+    - (DONE: 05/26/2025) investigate solutions such that self.generateState() can be called with the batch size as an argument
+
+05/27/2025
+    - implement and test a lstm_text.py model

@@ -1,6 +1,6 @@
 import torch
 from src.network import Network
-from recurrent_cell import RecurrentCell
+from rnn_cell import RNNCell
 from src.layer import Layer
 import os
 
@@ -29,7 +29,7 @@ class RNN(Network):
         
 
         if not self.layers:
-            raise ValueError("Layers is uninitialized!")
+            raise ValueError("Layers are uninitialized!")
         self.num_layers = len(self.layers)
 
         if training and self.optimizer:
@@ -43,7 +43,7 @@ class RNN(Network):
         
         layers = [ 
         
-        RecurrentCell( 
+        RNNCell( 
             pretrained=True, 
             device_type=self.device_type,
             type="hidden",
@@ -53,7 +53,7 @@ class RNN(Network):
             hidden_activation_function=activation,
             index=index ) for (wxh, whh, bh, activation, index) in list(model_params.values())[:-1] ] + [ 
                 
-        RecurrentCell(
+        RNNCell(
             pretrained=True, 
             device_type=self.device_type,
             type="output",
@@ -79,7 +79,7 @@ class RNN(Network):
 
         layers = [ 
         
-        RecurrentCell( 
+        RNNCell( 
             pretrained=False, 
             device_type=self.device_type,
             type="hidden",
@@ -90,7 +90,7 @@ class RNN(Network):
             hidden_activation_function=hidden_activation_function,
             index=i+1) for i in range(hidden_depth) ] + [ 
                 
-        RecurrentCell(
+        RNNCell(
             pretrained=False, 
             device_type=self.device_type,
             type="output",
@@ -183,7 +183,7 @@ class RNN(Network):
     #     def feed(X):
     #         nonlocal ht1_l
 
-    #         Y = torch.zeros(self.t_steps, output_feature_count, device=X.device)
+    #         Y = torch.zeros(self.t_steps, output_feature_count, device=self.device)
     #         for t in range(self.t_steps):
     #             x = X[t]
     #             ht_l[0] = Layer.staticActivate(
@@ -216,7 +216,7 @@ class RNN(Network):
 
         T = X.shape[0]  # actual sequence length
         output_feature_count = by.shape[0]
-        Y = torch.zeros(T, output_feature_count, device=X.device)
+        Y = torch.zeros(T, output_feature_count, device=self.device)
 
         # 2) Loop over time-steps WITHOUT detaching hidden state
         for t in range(T):
