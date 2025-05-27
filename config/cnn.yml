@@ -1,53 +1,68 @@
-specs:
-  multi_out: false
-  device_type: "cpu"
-  # mode: "test"
-  # pretrained: true
-  input_data_dim: [1, 64, 64] # [color_channels, img_height, img_width]
-
-
-#------------------------------------------------------------------------------------------------------------------------
-train:
-  epochs: 500
-  train_dataset_size: 1000
-  show_loss_plot: true
-
-hyperparameters:
-  cnn_hyperparameters:
-    learn_rate: 0.01
-    batch_size: 24
-    loss_func: "BCELoss"
-    reduction: "mean"
-    optimizer: "adam"
-    lambda_L2: 0.001 #1e-6
-    dropout_rate: ~
-  mlp_hyperparameters: 
-    learn_rate: 0.01
-    optimizer: "adam"
-    lambda_L2: 0.001 #1e-6
-    dropout_rate: ~
-
 architecture:
   cnn_architecture:
-    is_conv_layer: [true, false, true, false]
-    filter_counts: [2, 2, 4, 4] # THE NUMBER OF FILTERS IN A POOLING KERNEL MUST MATCH THE NUMBER OF FILTERS IN THE PRECEEDING CONVOLUTIONAL LAYER KERNEL
-    kernel_shapes: [[5, 5], [2, 2], [3, 3], [2, 2]]
-    kernel_strides: [1, 2, 1, 2]
-    activation_functions: ["leakyReLU", "none", "leakyReLU", "none"]
+    activation_functions:
+    - leakyReLU
+    - none
+    - leakyReLU
+    - none
+    filter_counts:
+    - 2
+    - 2
+    - 4
+    - 4
+    kernel_shapes:
+    - - 5
+      - 5
+    - - 2
+      - 2
+    - - 3
+      - 3
+    - - 2
+      - 2
+    kernel_strides:
+    - 1
+    - 2
+    - 1
+    - 2
+    type:
+    - convolutional
+    - max_pool
+    - convolutional
+    - max_pool
   mlp_architecture:
-    neuron_counts: [1]
-    activation_functions: ["sigmoid"]
-
-
-#------------------------------------------------------------------------------------------------------------------------
+    activation_functions:
+    - sigmoid
+    neuron_counts:
+    - 1
+hyperparameters:
+  cnn_hyperparameters:
+    batch_size: 24
+    dropout_rate: null
+    lambda_L2: 0.001
+    learn_rate: 0.01
+    loss_func: BCELoss
+    optimizer: adam
+    reduction: mean
+  mlp_hyperparameters:
+    dropout_rate: null
+    lambda_L2: 0.001
+    learn_rate: 0.01
+    optimizer: adam
+log_id: logs/2025-05-25_18:25:48_cnn
+parameters:
+  cnn_parameters_fpath: ./params/paramsCNN/pets
+  mlp_parameters_fpath: ./params/paramsMLP/pets
+specs:
+  device_type: cpu
+  input_data_dim:
+  - 1
+  - 64
+  - 64
+  multi_out: false
 test:
-  test_dataset_size: 100
   show_results: true
-
-parameters: 
-  cnn_parameters_fpath: "./params/paramsCNN"
-  mlp_parameters_fpath: "./params/paramsMLP"
-
-
-
-
+  test_dataset_size: 100
+train:
+  epochs: 600
+  show_loss_plot: true
+  train_dataset_size: 1000

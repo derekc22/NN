@@ -1,0 +1,6 @@
+fully, perfectly working rnn with batch dimension, however, the "output" layer is an independent layer, which i dont like 
+the latest architecture simply attaches the output transformation (ie why, by, and the output activation) as an extra responsibility to the final hidden layer (rather than having a standalone output layer)
+ive done this because the this logic will work well with the lstm architecture, and so i want the rnn architecture to be consistent
+thus, the final hidden layer now serves two purposes: propagate the hidden state (like any other hidden layer) and also transform the hidden state into the output space
+this is a design choice (i think it makes sense to have the output transformation as part of the final hidden layer)
+again, i plan to implement the lstm architecture in this way as well

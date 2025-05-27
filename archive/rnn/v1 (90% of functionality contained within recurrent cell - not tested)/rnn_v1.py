@@ -1,6 +1,6 @@
 import torch
 from src.network import Network
-from src.recurrent_cell import RecurrentCell
+from rnn_cell import RecurrentCell
 
 
 class RNN(Network):

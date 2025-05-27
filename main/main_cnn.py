@@ -2,6 +2,7 @@
 from utils.data import *
 from utils.cnn_utils import *
 from utils.mlp_utils import fetchMLPParametersFromFile
+from utils.logger import load_config
 from models.cnn import CNN
 import argparse
 
@@ -13,6 +14,7 @@ args = parser.parse_args()
 
 
 config = load_config(args.config)
+log_id = config['log_id']
 
 specs = config["specs"]
 multi_out = specs["multi_out"]
@@ -75,15 +77,15 @@ if mode == "train":
 
     (epoch_plt, loss_plt) = cnn.train(img_batch, label_batch, epochs, save_params=True)
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt)
+        plotTrainingResults(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 else:
     test_config = config["test"]
     test_dataset_size = test_config["test_dataset_size"]
-    show_images = test_config["show_results"]
+    show_results = test_config["show_results"]
 
-    (img_batch, label_batch) = genPetImageStack(
+    img_batch, label_batch = genPetImageStack(
         test_dataset_size,
         use="test",
         device_type=device_type,
@@ -112,7 +114,7 @@ else:
         #     label_batch=label_batch,
         #     prediction_batch=prediction_batch,
         #     color_channels=color_channels,
-        #     show_images=show_images
+        #     show_results=show_results
         # )
     else:
         printPetInferenceResults(
@@ -121,7 +123,7 @@ else:
             label_batch=label_batch,
             prediction_batch=prediction_batch,
             color_channels=color_channels,
-            show_images=show_images
+            show_images=show_results
         )
 
 

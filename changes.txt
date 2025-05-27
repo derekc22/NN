@@ -78,7 +78,7 @@ rnn-auto-regressive (05/23/2025)
    -- In the autoregressive model, not only is the hidden state passed from t -> t+1 -> t+2 -> ... -> t+n, but also the output at the current time step
 
    - added decaying sine wave data generation function (genDecayingSineWave())
-   -- non autoregressive rnn model performs worse on this data than on the regular sine wave data
+   -- non autoregressive rnn model performs worse (abysmal) on this data than on the regular sine wave data
    -- in fact, both models (autoregressive and non autoregressive) perform worse on this data than on the regular sine wave data
    -- furthermore, when the equation is changed from  y=exp(-t)*sin(t) to y=exp(t)*sin(t) (that is, a growing sine wave instead of a decaying sine wave), both models perform even even worse
 
@@ -86,3 +86,33 @@ rnn-auto-regressive (05/23/2025)
    -- added this script to 'run.sh' such that it runs automatically after training
 
    - added save_fpath argument to all models such that weights can be saved to a loaded from more from more flexible locations
+
+
+   lstm (05/27/2025)
+   - changed rnn architecture from having a separate output layer to having the output transformation responsibilities (ie why, bhy, and the output activation) be attached to the final hidden layer
+   -- this is an intentional design choice (i think it makes sense to have the output transformation as part of the final hidden layer)
+   -- i believe that this architecture makes sense for the lstm, which is why i changed the rnn architecture to match
+
+   - improved utils/logger.py such that data/plotTrainingResults logs the training loss curves (in addition to the config file) via a 'log_id' that is automatically generated (via datetime) and added to the config file
+   -- also added functionality to data/plotRegressionResults.py that saves the first 5 regression result plots to the new log directory as well
+
+   - changed "if self.is_conv_layer:" in the cnn class to "if self.type == 'convolutional':" to match the conventions of other architectures
+
+   - fixed really dumb rnn bug whereby the state was being reset after each epoch, even if self.stateful=True
+   -- this was caused by me placing the call to self.generateState() INSIDE the 'forward()' call instead of outside of it
+   -- thus, the state attribute (self.ht1) would be re-initialized back to zeros after each epoch instead of being carried over to the next epoch
+   -- this was fixed by adding a flag called 'self.stateful_initialized' that is set to True after the first call to self.generateState() (which is guarded by an if statement: 'if self.stateful and not self.stateful_initialized:' )
+
+   - moved self.epochs and self.epoch from src/network.py under the 'if training:' block of the Network constructor (it was previously outside of the 'if training:' block)
+   -- this required refactoring the teacher forcing factor logic in src/rnn.py to be inside an 'if training:' block as well
+   -- previously, the teacher forcing factor logic (which depends on both self.epochs and self.epoch) was not guarded by an 'if training:' block, which meant that a teacher forcing factor would be calculated even during inference (even thought it is not used during inference)
+   -- this meant that self.epochs and self.epoch always had to be exposed (even during inference), which meant that the declaration of these attributes could not be moved under an 'if training:' block (as that would mean they are inaccessible during inference, causing an 'AttributeError' to be raised)
+   -- anyway, i put both self.epochs/self.epoch and the teacher forcing factor logic under 'if training:' blocks, so this is no longer an issue (although the code for the latter looks a bit uglier now)
+
+   - implemented lstm model following aforementioned architectural changes
+   -- found ways to get both lstm and rnn to work in autoregressive mode. however, doing so requires a significant number of epochs and samples (10000+ epochs and 10000+ samples) 
+   -- even still, the phase of the sine wave is not learned properly
+   -- regardless, something works at least. this is a good start, but there is still work to be done to make both models more robust 
+   -- another next step is to try to implement a text_lstm model and re-test the old text_rnn model with this new knowledge that more epochs + more data leads to better results
+
+   - added /backup directory to store training logs/runs that show good results

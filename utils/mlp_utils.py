@@ -6,7 +6,7 @@ import glob, os, re
 
 def fetchMLPParametersFromFile(device_type, directory):
 
-  modelParams = {}
+  model_params = {}
 
   # Use glob to get all files matching the pattern
   weight_pattern = "layer_*_weights_*.pth"  # Pattern to match
@@ -29,9 +29,9 @@ def fetchMLPParametersFromFile(device_type, directory):
     index = match.group(1)
     activation = match.group(2)
 
-    modelParams.update({f"Layer {index}": [weights, biases, activation, index] })
+    model_params.update({f"Layer {index}": [weights, biases, activation, index] })
 
-  return modelParams
+  return model_params
 
 
 

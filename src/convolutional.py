@@ -8,9 +8,10 @@ from src.layer import Layer
 class ConvolutionalLayer(Layer):
 
 
-  def __init__(self, pretrained, is_conv_layer, device_type, **kwargs):
+  def __init__(self, pretrained, device_type, **kwargs):
 
-    self.is_conv_layer = is_conv_layer
+    # self.is_conv_layer = is_conv_layer
+    self.type = kwargs.get("type")
     self.padding = 0
     self.nonlinearity = kwargs.get("nonlinearity")
     self.index = int(kwargs.get("index"))
@@ -28,19 +29,19 @@ class ConvolutionalLayer(Layer):
       # Random Initialization
       # dim=0 is set to 1, allowing the kernel to expand to match the batch size of the input image
       # self.kernels = torch.rand(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32, device=self.device_type) if is_conv_layer else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32, device=self.device_type)
-      self.biases = torch.rand(size=(1, self.filter_count, 1), dtype=torch.float32, device=self.device_type) if is_conv_layer else None
 
       # He Initialization
       feature_count = self.filter_count * self.kernel_height * self.kernel_width
       stddev = np.sqrt(2 / feature_count)
-      self.kernels = torch.normal(0, stddev, size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32) if is_conv_layer else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32)
+      self.kernels = torch.normal(0, stddev, size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32) if self.type == "convolutional" else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32)
+      self.biases = torch.rand(size=(1, self.filter_count, 1), dtype=torch.float32, device=self.device_type) if self.type == "convolutional" else None
 
     else:
       self.kernels = kwargs.get("pretrained_kernels")
       self.biases = kwargs.get("pretrained_biases")
       self.filter_count, self.kernel_height, self.kernel_width = self.kernels.size()[-3:]
 
-    if is_conv_layer:
+    if self.type == "convolutional":
       self.kernels.requires_grad_()
       self.biases.requires_grad_()
 
@@ -88,7 +89,7 @@ class ConvolutionalLayer(Layer):
 
 
 
-    if self.is_conv_layer:
+    if self.type == "convolutional":
 
       ####### TESTING THIS ############################
       # feature_map = feature_map/(torch.max(feature_map)) # best during inference

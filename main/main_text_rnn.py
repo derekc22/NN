@@ -1,6 +1,7 @@
 import torch
 from utils.data import *
 from utils.rnn_utils import *
+from utils.logger import load_config
 from models.rnn import RNN
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,7 +43,7 @@ if mode == "train":
             hyperparameters=hyperparameters,
             model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
-            num_sequences=train_dataset_size,
+            batch_size=train_dataset_size,
         )
         
     else:
@@ -54,7 +55,7 @@ if mode == "train":
             architecture=architecture,
             input_feature_count=input_feature_count,
             stateful=stateful,
-            num_sequences=train_dataset_size,
+            batch_size=train_dataset_size,
             save_fpath=parameters_fpath,
         )
 
@@ -80,7 +81,7 @@ else:
         device_type=device_type,
         model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
         stateful=stateful,
-        num_sequences=test_dataset_size,
+        batch_size=test_dataset_size,
     )
 
     data_batch = torch.load("data/text/embeddings/data_batch.pth")[:test_dataset_size]
