@@ -310,7 +310,7 @@ class LSTM(Network):
                     else 0
                 )
                 x = X[:, t+1, :] if t < teacher_forcing_factor*(T-1) else y.detach() 
-                """YO SHOULD THIS BE T OR T+1"""
+               
             else: x = y.detach()
 
             # print(x.shape)
