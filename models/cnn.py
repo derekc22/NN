@@ -125,11 +125,6 @@ class CNN(Network):
     # print(flattened_feature_map.shape)
 
 
-    """flattened_feature_map = curr_input.view(curr_input_batch_size, -1).to(torch.float32).T""" # <------------THIS IS WHAT CHAT GPT o1 PREVIEW GAVE ME (that works, presumably)
-    """flattened_feature_map = curr_input.reshape(-1, curr_input_batch_size).to(torch.float32)""" # <------------THIS SHITTY LINE OF CODE WAS THE PROBLEM
-    """flattened_feature_map = curr_input.view(-1, curr_input_batch_size).to(torch.float32)""" # <------------THIS IS WHAT I ATTEMPTED TO TEST BASED ON GPT o1 PREVIEW'S OUTPUT, AND IT WAS ALSO SHIT
-
-
     if dummy:
       return flattened_feature_map
     else:
