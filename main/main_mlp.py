@@ -1,10 +1,11 @@
 import torch
 from utils.data import *
 from utils.mlp_utils import *
+from utils.logger import load_config
 from models.mlp import MLP
 import argparse
 
-parser = argparse.ArgumentParser(description='Run the simulation')
+parser = argparse.ArgumentParser(description='Set run options')
 parser.add_argument('--config', type=str, help='Specify config location')
 parser.add_argument('--mode', type=str, help='Specify "train" or "test"')
 parser.add_argument('--pretrained', action="store_true", help='Specify if model is pretrained')

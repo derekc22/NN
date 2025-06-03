@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 
-parser = argparse.ArgumentParser(description='Run the simulation')
+parser = argparse.ArgumentParser(description='Set run options')
 parser.add_argument('--config', type=str, help='Specify config location')
 parser.add_argument('--mode', type=str, help='Specify "train" or "test"')
 parser.add_argument('--pretrained', action="store_true", help='Specify if model is pretrained')
@@ -52,7 +52,6 @@ if mode == "train":
             hyperparameters=hyperparameters,
             model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
-            # batch_size=train_dataset_size,
             auto_regressive=auto_regressive,
             teacher_forcing=teacher_forcing,
         )
@@ -66,7 +65,6 @@ if mode == "train":
             architecture=architecture,
             input_feature_count=input_feature_count,
             stateful=stateful,
-            # batch_size=train_dataset_size,
             auto_regressive=auto_regressive,
             teacher_forcing=teacher_forcing,
             save_fpath=parameters_fpath,
