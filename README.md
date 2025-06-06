@@ -47,8 +47,8 @@ The models are designed to be modular and extensible.
 - **`figures/`**: Saved plots and figures from model training or analysis.
 - **`logs/`**: Logging directory, including training loss curves and configuration snapshots.
 - **`main/`**: Main executable scripts for training and testing models (e.g., [`main_auto_regressive_lstm.py`](main/main_auto_regressive_lstm.py)).
-- **`models/`**: Saved model weights and architectures.
-- **`params/`**: Potentially for hyperparameter sets or specific model parameters.
+- **`models/`**: Main model implementations.
+- **`params/`**: Saved model weights, biases, and other parameters.
 - **`src/`**: Source code for the neural network layers, activations, and core logic.
 - **`utils/`**: Utility scripts for data processing, logging, plotting, etc.
 - **[`changes.txt`](changes.txt)**: A log of significant changes and development milestones.
