@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import torch.nn as nn
 
 
 # torch.manual_seed(42)
@@ -8,8 +7,6 @@ import torch.nn as nn
 class LSTMCell():
 
     def __init__(self, pretrained, device_type, **kwargs):
-
-        # super().__init__(pretrained, device_type, **kwargs)
 
         self.index = int(kwargs.get("index"))
         self.device_type = device_type

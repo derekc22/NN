@@ -242,7 +242,7 @@ class LSTM(Network):
 
     def forwardAutoRegressive(self, X, training):
         """
-        No autoregressive handling - working
+        Autoregressive handling - working
         """
         
         T = X.shape[1] 
