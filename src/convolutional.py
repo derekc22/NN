@@ -1,11 +1,12 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from src.layer import Layer
+from src.functions import activate
 
 
 
-class ConvolutionalLayer(Layer):
+
+class ConvolutionalLayer:
 
 
   def __init__(self, pretrained, device_type, **kwargs):
@@ -45,6 +46,8 @@ class ConvolutionalLayer(Layer):
       self.kernels.requires_grad_()
       self.biases.requires_grad_()
 
+
+    self.bn2 = nn.BatchNorm2d(num_features=self.filter_count, dtype=torch.float32, device=self.device_type)
 
 
     # print(self.kernels.device)
@@ -96,8 +99,7 @@ class ConvolutionalLayer(Layer):
       # feature_map = feature_map/(torch.norm(feature_map))
 
       if img_batch_size > 1:
-        bn2 = nn.BatchNorm2d(num_features=self.filter_count, dtype=torch.float32, device=self.device_type)
-        feature_map = bn2(feature_map)
+        feature_map = self.bn2(feature_map)
 
 
       # normalizer = torch.max(torch.max(feature_map, dim=2).values, dim=2).values
@@ -105,7 +107,7 @@ class ConvolutionalLayer(Layer):
       # feature_map = feature_map / normalizer
       ####### TESTING THIS ############################
 
-      feature_map = self.activate(feature_map, self.nonlinearity)
+      feature_map = activate(feature_map, self.nonlinearity)
 
 
     feature_map = feature_map.to(self.device_type)

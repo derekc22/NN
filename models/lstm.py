@@ -1,7 +1,7 @@
 import torch
 from src.network import Network
 from src.lstm_cell import LSTMCell
-from src.layer import Layer
+from src.functions import activate
 import os
 
 
@@ -159,10 +159,10 @@ class LSTM(Network):
 
     def calculateState(self, x, ht1_i, Ct1_i, wf_i, bf_i, wi_i, bi_i, wc_i, bc_i, wo_i, bo_i ):
         ht1_xt_i = torch.cat([ht1_i, x], dim=1)
-        ft = Layer.staticActivate(torch.matmul(ht1_xt_i, wf_i) + bf_i, self.gate_nonlinearity)
-        it = Layer.staticActivate(torch.matmul(ht1_xt_i, wi_i) + bi_i, self.gate_nonlinearity)
+        ft = activate(torch.matmul(ht1_xt_i, wf_i) + bf_i, self.gate_nonlinearity)
+        it = activate(torch.matmul(ht1_xt_i, wi_i) + bi_i, self.gate_nonlinearity)
         Ct_tilde = torch.tanh(torch.matmul(ht1_xt_i, wc_i) + bc_i)
-        ot = Layer.staticActivate(torch.matmul(ht1_xt_i, wo_i) + bo_i, self.gate_nonlinearity)
+        ot = activate(torch.matmul(ht1_xt_i, wo_i) + bo_i, self.gate_nonlinearity)
         Ct = torch.mul(ft, Ct1_i) + torch.mul(it, Ct_tilde)
         ht_i = torch.mul(ot, torch.tanh(Ct))
 
@@ -227,7 +227,7 @@ class LSTM(Network):
                 )
             
             # print("done")
-            Y[:, t, :] = Layer.staticActivate( 
+            Y[:, t, :] = activate( 
                 torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             
             ht1_l = ht_l
@@ -296,7 +296,7 @@ class LSTM(Network):
                     wo_l[i], bo_l[i] 
                 )
             
-            y = Layer.staticActivate( 
+            y = activate( 
                 torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             Y[:, t, :] = y
             

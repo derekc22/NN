@@ -1,10 +1,10 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from src.layer import Layer
+from src.functions import activate
 
 
-class DenseLayer(Layer):
+class DenseLayer():
 
   def __init__(self, pretrained, device_type, **kwargs):
 
@@ -38,11 +38,11 @@ class DenseLayer(Layer):
       self.biases = kwargs.get("pretrained_biases").to(device=self.device_type)
 
 
-
     self.weights.requires_grad_()
     self.biases.requires_grad_()
 
 
+    self.bn1 = nn.BatchNorm1d(num_features=self.weights.size(dim=1), dtype=torch.float32, device=self.device_type)
 
 
 
@@ -61,13 +61,12 @@ class DenseLayer(Layer):
 
     # ####### TESTING THIS ############################
     if x.size(dim=0) > 1:
-      bn1 = nn.BatchNorm1d(num_features=self.weights.size(dim=1), dtype=torch.float32, device=self.device_type)
       # z = bn1(z.T).T
-      z = bn1(z)
+      z = self.bn1(z)
     # ####### TESTING THIS ############################
 
 
-    y = self.activate(z, self.nonlinearity)
+    y = activate(z, self.nonlinearity)
 
 
     return y

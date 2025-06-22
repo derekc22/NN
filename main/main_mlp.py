@@ -12,6 +12,7 @@ parser.add_argument('--pretrained', action="store_true", help='Specify if model 
 args = parser.parse_args()
 
 config = load_config(args.config)
+log_id = config['log_id']
 
 specs = config["specs"]
 device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -56,7 +57,7 @@ if mode == "train":
 
     (epoch_plt, loss_plt) = mlp.train(data_batch, label_batch, epochs, save_params=True)
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt)
+        plotTrainingResults(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 else:

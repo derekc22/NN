@@ -1,7 +1,7 @@
 import torch
 from src.network import Network
 from src.rnn_cell import RNNCell
-from src.layer import Layer
+from src.functions import activate
 import os
 
 
@@ -163,16 +163,16 @@ class RNN(Network):
             x = X[:, t, :]
 
             ht_l = [None] * self.num_layers
-            ht_l[0] = Layer.staticActivate(
+            ht_l[0] = activate(
                 torch.matmul(ht1_l[0], whh_l[0]) + bh_l[0] + 
                 torch.matmul(x, wxh_l[0]), self.whh_nonlinearity)
 
             for i in range(1, self.num_layers):
-                ht_l[i] = Layer.staticActivate(
+                ht_l[i] = activate(
                     torch.matmul(ht1_l[i], whh_l[i]) + bh_l[i] +
                     torch.matmul(ht_l[i-1], wxh_l[i]), self.whh_nonlinearity)
 
-            Y[:, t, :] = Layer.staticActivate( 
+            Y[:, t, :] = activate( 
                 torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             
             ht1_l = ht_l
@@ -213,17 +213,17 @@ class RNN(Network):
 
             # ht_l = [None] * len(ht1_l)
             ht_l = [None] * self.num_layers
-            ht_l[0] = Layer.staticActivate(
+            ht_l[0] = activate(
                 torch.matmul(ht1_l[0], whh_l[0]) + bh_l[0] + 
                 torch.matmul(x, wxh_l[0]), self.whh_nonlinearity)
 
             # for i in range(1, len(ht_l)):
             for i in range(1, self.num_layers):
-                ht_l[i] = Layer.staticActivate(
+                ht_l[i] = activate(
                     torch.matmul(ht1_l[i], whh_l[i]) + bh_l[i] +
                     torch.matmul(ht_l[i-1], wxh_l[i]), self.whh_nonlinearity)
 
-            y = Layer.staticActivate( 
+            y = activate( 
                 torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             Y[:, t, :] = y
             # print(y.shape)
