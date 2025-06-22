@@ -88,7 +88,7 @@ rnn-auto-regressive (05/23/2025)
    - added save_fpath argument to all models such that weights can be saved to a loaded from more from more flexible locations
 
 
-   lstm (05/27/2025)
+lstm (05/27/2025)
    - changed rnn architecture from having a separate output layer to having the output transformation responsibilities (ie why, bhy, and the output activation) be attached to the final hidden layer
    -- this is an intentional design choice (i think it makes sense to have the output transformation as part of the final hidden layer)
    -- i believe that this architecture makes sense for the lstm, which is why i changed the rnn architecture to match
@@ -116,3 +116,9 @@ rnn-auto-regressive (05/23/2025)
    -- another next step is to try to implement a text_lstm model and re-test the old text_rnn model with this new knowledge that more epochs + more data leads to better results
 
    - added /backup directory to store training logs/runs that show good results
+
+transformer (06/21/2025)
+   - refactored layer.py to 'functions.py' and swapped out the Layer class for a collection of pure functions
+   - fixed nasty batchnorm issue where bn2 in convolutional.py and bn1 in dense.py would be instantiated WITHIN traverse() and forward() methods, respectively, causing the internal state of the batchnorm layers to be reset every time a forward pass was made
+   -- this is obviously dumb as it causes the internal state/statistics of the batchnorm layers to be reset every time, defeating the purpose/benefit of batch normalization
+   -- this was fixed by moving the instantiation of the batchnorm object to their respective __init__() methods

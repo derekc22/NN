@@ -1,6 +1,10 @@
 import os
 from src.network import Network
 import torch
+import jax
+from src.encoder import Encoder
+from src.decoder import Decoder
+
 
 
 
@@ -12,23 +16,35 @@ class Transformer(Network):
         super().__init__(model_type="transformer", training=training, kwargs=kwargs)
 
         self.device_type = torch.device(device_type)
-        self.num_heads = kwargs.get("num_heads")
 
 
 
 
+def buildTransformer(self, architecture):
+
+    layers = [
+    
+    Encoder(
+        pretrained=False,
+        device_type=self.device_type,
+    )
 
 
-def multiHeadedSelfAttention(curr_input):
-    Q_ = self.WQ @ curr_input
-    K_ = self.WK @ curr_input
-    V_ = self.WV @ curr_input
+    ]
+
+
+
 
 
 
 def forward(curr_input):
 
-    multiHeadedSelfAttention(curr_input)
+    for encoder in self.encoders:
+        curr_input = encoder.multiHeadedSelfAttention(curr_input)
+
+    for decoder in self.decoders:
+        curr_input = decoder.
+
 
 
 

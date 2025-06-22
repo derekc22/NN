@@ -20,3 +20,11 @@
 
 05/27/2025
     - implement and test a lstm_text.py model
+
+06/18/2025
+    - get rid of 'Layer' class and instead just implement each activation function as a pure function instead of as a method of the class
+
+06/21/2025
+    - rename 'curr_input' to just 'X' in the training loop for all models
+    - rename convolutional.py and ConvolutionalLayer to something like cnn_layer.py and CNNLayer, respectively since (obviously) not all layer in CNNs are convolutional. This will aid readability and clarity.
+    - add custom implementations of batchNorm and layerNorm to src/functions.py
