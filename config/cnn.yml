@@ -48,10 +48,10 @@ hyperparameters:
     lambda_L2: 0.001
     learn_rate: 0.01
     optimizer: adam
-log_id: logs/2025-05-25_18:25:48_cnn
+log_id: logs/2025-06-22_19:57:43_cnn
 parameters:
-  cnn_parameters_fpath: ./params/paramsCNN/pets
-  mlp_parameters_fpath: ./params/paramsMLP/pets
+  cnn_parameters_fpath: ./params/cnn/pets
+  mlp_parameters_fpath: ./params/cnn/pets/cnn_mlp
 specs:
   device_type: cpu
   input_data_dim:

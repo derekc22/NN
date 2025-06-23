@@ -54,6 +54,7 @@ if mode == "train":
             # batch_size=train_dataset_size,
             auto_regressive=auto_regressive,
             teacher_forcing=teacher_forcing,
+            save_fpath=parameters_fpath,
         )
         
     else:

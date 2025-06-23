@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from functions import softmax 
+from src.functions import softmax 
+from src.dense import DenseLayer
 
 
 class Encoder:
@@ -41,6 +42,28 @@ class Encoder:
                 size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device_type)
+            
+            ff_neuron_count = kwargs.get("ff_neuron_count") # typically 2048 or 4096
+            ff_nonlinearity = kwargs.get("ff_nonlinearity") # typically reLU or GELU
+            
+            self.ffLayers = [
+                DenseLayer(
+                    pretrained=pretrained,
+                    device_type=device_type,
+                    nonlinearity=ff_nonlinearity,
+                    input_count=self.d_model,
+                    neuron_count=ff_neuron_count,
+                    index=1
+                ),
+                DenseLayer(
+                    pretrained=pretrained,
+                    device_type=device_type,
+                    nonlinearity="none",
+                    input_count=ff_neuron_count,
+                    neuron_count=self.d_model,
+                    index=2
+                )
+            ]
 
         self.WQ.requires_grad_()
         self.WK.requires_grad_()
@@ -48,9 +71,10 @@ class Encoder:
         self.WO.requires_grad_()
 
         self.ln_1 = nn.LayerNorm(self.d_model)
+        self.ln_2 = nn.LayerNorm(self.d_model)
 
 
-    # @staticmethod
+
     def computeQKV(self, X, WQ, WK, WV):
         Q = X @ WQ
         K = X @ WK
@@ -79,31 +103,63 @@ class Encoder:
         H = torch.vmap(
             self.computeHead,
             in_dims=(0)
-        )(X)
+            )(X)
 
-        MH_a = H @ self.WO
+        MH_A = H @ self.WO
 
-        print(MH_a.shape)
-
-        return MH_a
+        return MH_A
 
 
-    def addNorm(self, X, MH_a):
-        A = X + MH_a
-        Anorm = self.ln_1(A)
-        return Anorm
+    def addNorm(self, X, Y, ln):
+        Z = X + Y
+        ZNorm = ln(Z)
+        return ZNorm
 
+
+    def feedForward(self, curr_input):
+        for layer in self.ffLayers:
+            curr_input = layer.feed(curr_input)
+        return curr_input
+
+
+
+    def forward(self, X):
+        MH_A = self.multiHeadedAttention(X)
+        ZNorm1 = self.addNorm(X, MH_A, self.ln_1)
+        print(ZNorm1.shape)
+        # ZFF = torch.vmap(
+        #     self.feedForward,
+        #     in_dims=(1)
+        #     )(ZNorm1)
+
+        batch_size, seq_len = X.shape[:2]
+
+        ZFF = self.feedForward(
+            ZNorm1.reshape(-1, self.d_model)
+            ).reshape(batch_size, seq_len, self.d_model)
+        
+        ZNorm2 = self.addNorm(ZNorm1, ZFF, self.ln_2)
+
+        print(ZNorm2.shape)
 
         
 
 
 
 if __name__ == "__main__":
-    batch_size = 5
-    seq_len = 3
+    batch_size_ = 5
+    sequence_len = 3
     embedding_size = 8
-    x = torch.rand(size=(batch_size, seq_len, embedding_size))
+    x = torch.rand(size=(batch_size_, sequence_len, embedding_size))
     # x = torch.rand(size=(seq_len, embedding_size))
 
-    encode = Encoder(False, device_type="cpu", embedding_size=embedding_size, num_heads=2)
-    encode.multiHeadedAttention(x)
+    encode = Encoder(
+        pretrained=False, 
+        device_type="cpu", 
+        embedding_size=embedding_size, 
+        num_heads=2,
+        ff_neuron_count=64,
+        ff_nonlinearity="GELU"
+    )
+    encode.forward(x)
+    # encode.computeHead(x)

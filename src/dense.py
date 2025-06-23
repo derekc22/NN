@@ -4,16 +4,13 @@ import torch.nn as nn
 from src.functions import activate
 
 
-class DenseLayer():
+class DenseLayer:
 
   def __init__(self, pretrained, device_type, **kwargs):
 
-    self.nonlinearity = kwargs.get("nonlinearity")
     self.index = int(kwargs.get("index"))
-
-
     self.device_type = device_type
-
+    self.nonlinearity = kwargs.get("nonlinearity")
 
     if not pretrained:
 

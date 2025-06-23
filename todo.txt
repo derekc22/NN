@@ -26,5 +26,5 @@
 
 06/21/2025
     - rename 'curr_input' to just 'X' in the training loop for all models
-    - rename convolutional.py and ConvolutionalLayer to something like cnn_layer.py and CNNLayer, respectively since (obviously) not all layer in CNNs are convolutional. This will aid readability and clarity.
+    - rename convolutional.py and CNNLayer to something like cnn_layer.py and CNNLayer, respectively since (obviously) not all layer in CNNs are convolutional. This will aid readability and clarity.
     - add custom implementations of batchNorm and layerNorm to src/functions.py

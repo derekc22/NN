@@ -1,7 +1,7 @@
 import os
 from src.network import Network
 from models.mlp import MLP
-from src.convolutional import ConvolutionalLayer
+from src.convolutional import CNNLayer
 import torch
 
 class CNN(Network):
@@ -11,22 +11,22 @@ class CNN(Network):
     super().__init__(model_type="cnn", training=training, kwargs=kwargs)
 
     self.device_type = torch.device(device_type)
+    self.save_fpath = kwargs.get("cnn_save_fpath")
+    mlp_save_fpath = kwargs.get("mlp_save_fpath")
 
     if not pretrained:
       architecture = kwargs.get("cnn_architecture")
       self.checkConfig(architecture=architecture)
       self.layers = self.buildLayers(architecture=architecture)
-      self.save_fpath = kwargs.get("cnn_save_fpath")
-      mlp_save_fpath = kwargs.get("mlp_save_fpath")
 
       mlp_input_feature_count = self.calcMLPInputSize(kwargs.get("input_data_dim"))
       self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=mlp_input_feature_count, architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
     else:
       self.layers = self.loadLayers(kwargs.get("cnn_model_params"))
-      self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"))
+      self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
 
     if not (self.layers and self.MLP.layers):
-      raise ValueError("Layers are uninitialized!")
+      raise ValueError("CNN or MLP layers are uninitialized!")
     self.num_layers = len(self.layers)
 
     if training and self.optimizer:
@@ -37,7 +37,7 @@ class CNN(Network):
 
   def loadLayers(self, model_params):
 
-    layers = [ConvolutionalLayer(
+    layers = [CNNLayer(
       pretrained=True, 
       device_type=self.device_type, 
       type=layer_type, 
@@ -58,7 +58,7 @@ class CNN(Network):
     activation_functions = architecture.get("activation_functions")
     num_layers = len(layer_types)
 
-    layers = [ConvolutionalLayer(
+    layers = [CNNLayer(
       pretrained=False, 
       device_type=self.device_type, 
       type=layer_types[i], 

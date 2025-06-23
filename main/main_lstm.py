@@ -51,6 +51,7 @@ if mode == "train":
             model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
             auto_regressive=auto_regressive,
+            save_fpath=parameters_fpath,
         )
         
     else:

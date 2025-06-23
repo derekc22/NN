@@ -52,6 +52,7 @@ if mode == "train":
             stateful=stateful,
             auto_regressive=auto_regressive,
             # batch_size=train_dataset_size,
+            save_fpath=parameters_fpath,
         )
         
     else:

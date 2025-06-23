@@ -13,6 +13,8 @@ class LSTM(Network):
 
         self.device_type = torch.device(device_type)
         self.stateful = kwargs.get("stateful", False)
+        self.save_fpath = kwargs.get("save_fpath")
+        
         if self.stateful:
             self.stateful_initialized = False
         self.auto_regressive = kwargs.get("auto_regressive", False)
@@ -23,7 +25,6 @@ class LSTM(Network):
             architecture = kwargs.get("architecture")
             self.input_feature_count = kwargs.get("input_feature_count")
             self.layers = self.buildLayers(architecture=architecture)
-            self.save_fpath = kwargs.get("save_fpath")
         else:
             self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
 
