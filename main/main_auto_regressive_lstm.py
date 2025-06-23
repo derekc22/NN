@@ -54,6 +54,7 @@ if mode == "train":
             stateful=stateful,
             auto_regressive=auto_regressive,
             teacher_forcing=teacher_forcing,
+            save_fpath=parameters_fpath,
         )
         
     else:

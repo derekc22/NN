@@ -11,13 +11,13 @@ class MLP(Network):
     super().__init__(model_type="mlp", training=training, kwargs=kwargs)
 
     self.device_type = torch.device(device_type)
+    self.save_fpath = kwargs.get("save_fpath")
 
     if not pretrained:
       architecture = kwargs.get("architecture")
       self.input_feature_count = kwargs.get("input_feature_count")
       self.checkConfig(architecture=architecture)
       self.layers = self.buildLayers(architecture=architecture) #or mlp_architecture.get("input_data_dim"))
-      self.save_fpath = kwargs.get("save_fpath")
     else:
       self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
 

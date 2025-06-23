@@ -1,5 +1,10 @@
 import torch
+import numpy as np
 
+
+def GELU(k):
+  arg = np.sqrt(2/np.pi) * (k + 0.044715 * torch.pow(k, 3))
+  return 0.5 * k * (1 + tanh(arg))  
 
 
 def tanh(k):
@@ -18,7 +23,6 @@ def leakyReLU(k):
 
 def sigmoid(k):
   return 1/(1 + torch.exp(-k))
-
 
 
 def softmax(k):

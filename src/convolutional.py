@@ -6,7 +6,7 @@ from src.functions import activate
 
 
 
-class ConvolutionalLayer:
+class CNNLayer:
 
 
   def __init__(self, pretrained, device_type, **kwargs):

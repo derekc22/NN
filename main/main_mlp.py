@@ -43,6 +43,7 @@ if mode == "train":
             device_type=device_type,
             hyperparameters=hyperparameters,
             model_params=fetchMLPParametersFromFile(device_type, parameters_fpath),
+            save_fpath=parameters_fpath,
         )
     else:
         mlp = MLP(

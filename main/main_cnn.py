@@ -60,6 +60,8 @@ if mode == "train":
             mlp_hyperparameters=mlp_hyperparameters,
             cnn_model_params=fetchCNNParametersFromFile(device_type, cnn_parameters_fpath),
             mlp_model_params=fetchMLPParametersFromFile(device_type, mlp_parameters_fpath),
+            cnn_save_fpath=cnn_parameters_fpath,
+            mlp_save_fpath=mlp_parameters_fpath,
         )
     else:
         cnn = CNN(
