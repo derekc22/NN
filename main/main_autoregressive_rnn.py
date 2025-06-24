@@ -1,9 +1,8 @@
 import torch
 from utils.data import *
 from utils.rnn_utils import *
-from utils.lstm_utils import *
 from utils.logger import load_config
-from models.lstm import LSTM
+from models.rnn import RNN
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
@@ -25,7 +24,7 @@ pretrained = args.pretrained #specs["pretrained"]
 input_feature_count = specs["input_feature_count"]
 # time_steps = specs["time_steps"]
 stateful = specs["stateful"]
-auto_regressive = specs["auto_regressive"]
+autoregressive = specs["autoregressive"]
 teacher_forcing = specs["teacher_forcing"]
 
 parameters_fpath = config["parameters_fpath"]
@@ -33,7 +32,7 @@ architecture = config["architecture"]
 
 freq = 5
 amp = 1
-time_steps = 150
+time_steps = 30
 T = 2*np.pi
 
 # Training mode
@@ -45,20 +44,21 @@ if mode == "train":
     hyperparameters = config["hyperparameters"]
 
     if pretrained:
-        lstm = LSTM(
+        rnn = RNN(
             pretrained=True,
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
+            model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
-            auto_regressive=auto_regressive,
+            # batch_size=train_dataset_size,
+            autoregressive=autoregressive,
             teacher_forcing=teacher_forcing,
             save_fpath=parameters_fpath,
         )
         
     else:
-        lstm = LSTM(
+        rnn = RNN(
             pretrained=False,
             training=True,
             device_type=device_type,
@@ -66,18 +66,19 @@ if mode == "train":
             architecture=architecture,
             input_feature_count=input_feature_count,
             stateful=stateful,
-            auto_regressive=auto_regressive,
+            # batch_size=train_dataset_size,
+            autoregressive=autoregressive,
             teacher_forcing=teacher_forcing,
             save_fpath=parameters_fpath,
         )
         
-    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
+    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
 
 
-    (epoch_plt, loss_plt) = lstm.train(data_batch, label_batch, epochs, save_params=True)
+    (epoch_plt, loss_plt) = rnn.train(data_batch, label_batch, epochs, save_params=True)
     if epoch_plt and show_plot:
         plotTrainingResults(epoch_plt, loss_plt, log_id)
 
@@ -88,23 +89,24 @@ else:
     test_dataset_size = test_config["test_dataset_size"]
     show_results = test_config["show_results"]
 
-    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
+    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     t = t[:, :-1, :]
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
 
 
-    lstm = LSTM(
+    rnn = RNN(
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
+        model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
         stateful=stateful,
-        auto_regressive=auto_regressive
+        # batch_size=test_dataset_size,
+        autoregressive=autoregressive
     )
 
-    prediction_batch = lstm.inference(data_batch)
+    prediction_batch = rnn.inference(data_batch)
     plotRegressionResults(t, prediction_batch, label_batch, log_id, show_results)
 
 

@@ -24,7 +24,7 @@ mode = args.mode
 pretrained = args.pretrained
 input_feature_count = specs["input_feature_count"]
 stateful = specs["stateful"]
-auto_regressive = specs["auto_regressive"]
+autoregressive = specs["autoregressive"]
 
 parameters_fpath = config["parameters_fpath"]
 architecture = config["architecture"]
@@ -50,7 +50,7 @@ if mode == "train":
             hyperparameters=hyperparameters,
             model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
             stateful=stateful,
-            auto_regressive=auto_regressive,
+            autoregressive=autoregressive,
             save_fpath=parameters_fpath,
         )
         
@@ -63,12 +63,12 @@ if mode == "train":
             architecture=architecture,
             input_feature_count=input_feature_count,
             stateful=stateful,
-            auto_regressive=auto_regressive,
+            autoregressive=autoregressive,
             save_fpath=parameters_fpath,
         )
         
-    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
+    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = t
     label_batch = X
     plt.plot(data_batch[0].squeeze(), label_batch[0].squeeze())
@@ -85,8 +85,8 @@ else:
     test_dataset_size = test_config["test_dataset_size"]
     show_results = test_config["show_results"]
 
-    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=True, add_noise=True)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=True, vary_phase=True, add_noise=True)
+    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = t
     label_batch = X
 
@@ -96,7 +96,7 @@ else:
         device_type=device_type,
         model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
         stateful=stateful,
-        auto_regressive=auto_regressive,
+        autoregressive=autoregressive,
     )
 
     prediction_batch = lstm.inference(data_batch)#.detach()

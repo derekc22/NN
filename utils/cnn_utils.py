@@ -10,64 +10,64 @@ from utils.data import printClassificationResults
 def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_batch, color_channels, show_images):
 
 
-  if dataset_size == 1:
+    if dataset_size == 1:
 
-    predicted_animal = "dog" if prediction_batch.item() >= 0.5 else "cat"
-    animal_label = "dog" if label_batch.item() == 1 else "cat"
-
-
-    print(f"prediction = {prediction_batch}")
-    print(f"predicted animal = {predicted_animal}")
-
-    print(f"truth: {label_batch}")
-    print(f"truth label = {animal_label}")
+        predicted_animal = "dog" if prediction_batch.item() >= 0.5 else "cat"
+        animal_label = "dog" if label_batch.item() == 1 else "cat"
 
 
-    img_batch = img_batch.cpu()
+        print(f"prediction = {prediction_batch}")
+        print(f"predicted animal = {predicted_animal}")
 
-    plt.imshow(img_batch.squeeze(), cmap='gray')
-    plt.title(f'Prediction: {predicted_animal}, Label: {animal_label}')
-    plt.show()
+        print(f"truth: {label_batch}")
+        print(f"truth label = {animal_label}")
+
+
+        img_batch = img_batch.cpu()
+
+        plt.imshow(img_batch.squeeze(), cmap='gray')
+        plt.title(f'Prediction: {predicted_animal}, Label: {animal_label}')
+        plt.show()
 
 
 
-  else:
+    else:
 
-    predictions = ["dog" if pet >= 0.5 else "cat" for pet in prediction_batch.tolist()]
-    labels = ["dog" if pet_label == 1 else "cat" for pet_label in label_batch.tolist()]
+        predictions = ["dog" if pet >= 0.5 else "cat" for pet in prediction_batch.tolist()]
+        labels = ["dog" if pet_label == 1 else "cat" for pet_label in label_batch.tolist()]
 
-    print(f"predictions = {predictions}")
-    print(f"labels      = {labels}")
+        print(f"predictions = {predictions}")
+        print(f"labels      = {labels}")
 
-    # print(prediction_batch)
-    # print(prediction_batch.shape)
-    # print(label_batch)
+        # print(prediction_batch)
+        # print(prediction_batch.shape)
+        # print(label_batch)
 
-    # num_correct = torch.sum(torch.abs(prediction_batch.squeeze() - label_batch) <= 0.5)
-    # print(f"number correct = {num_correct.item()}/{dataset_size}")
+        # num_correct = torch.sum(torch.abs(prediction_batch.squeeze() - label_batch) <= 0.5)
+        # print(f"number correct = {num_correct.item()}/{dataset_size}")
 
-    # percent_correct = (num_correct/dataset_size)*100
-    # print(f"percent correct = {percent_correct.item()}%")
+        # percent_correct = (num_correct/dataset_size)*100
+        # print(f"percent correct = {percent_correct.item()}%")
 
-    printClassificationResults(dataset_size, prediction_batch, label_batch)
+        printClassificationResults(dataset_size, prediction_batch, label_batch)
 
-    if show_images:
-      for (img, pred, lbl) in zip(img_batch, predictions, labels):
+        if show_images:
+            for (img, pred, lbl) in zip(img_batch, predictions, labels):
 
-        img = img.cpu()
+                img = img.cpu()
 
-        if color_channels == 1:
-          plt.imshow(img.squeeze(), cmap='gray') # grey images
+                if color_channels == 1:
+                    plt.imshow(img.squeeze(), cmap='gray') # grey images
 
-        elif color_channels == 3:
-          img = np.transpose(img.numpy(), (1, 2, 0)) # color images
-          plt.imshow(img)
+                elif color_channels == 3:
+                    img = np.transpose(img.numpy(), (1, 2, 0)) # color images
+                    plt.imshow(img)
 
-        plt.title(f'Prediction: {pred}, Label: {lbl}')
+                plt.title(f'Prediction: {pred}, Label: {lbl}')
 
-        plt.show(block=False)
-        plt.pause(1.5)
-        plt.close()
+                plt.show(block=False)
+                plt.pause(1.5)
+                plt.close()
 
 
 
@@ -75,51 +75,51 @@ def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_ba
 
 # def printPetInferenceResultsMultiout(dataset_size, img_batch, label_batch, prediction_batch, color_channels):
 
-#   predictions = torch.argmax(prediction_batch, dim=0)
+#     predictions = torch.argmax(prediction_batch, dim=0)
 
-#   truths = torch.argmax(label_batch, dim=0)
-
-
-#   num_correct =  dataset_size - torch.sum(torch.abs(predictions-truths))
-#   percent_correct = (num_correct/dataset_size)*100
-#   print(f"number correct = {num_correct.item()}/{dataset_size}")
-#   print(f"percent correct = {percent_correct.item()}%")
+#     truths = torch.argmax(label_batch, dim=0)
 
 
-#   labels = ["dog" if x == 0 else "cat" for x in predictions.tolist()]
+#     num_correct =  dataset_size - torch.sum(torch.abs(predictions-truths))
+#     percent_correct = (num_correct/dataset_size)*100
+#     print(f"number correct = {num_correct.item()}/{dataset_size}")
+#     print(f"percent correct = {percent_correct.item()}%")
+
+
+#     labels = ["dog" if x == 0 else "cat" for x in predictions.tolist()]
 
 
 
-#   for (img, pred, lbl) in zip(img_batch, predictions, labels):
+#     for (img, pred, lbl) in zip(img_batch, predictions, labels):
 
-#     img = img.cpu()
+#         img = img.cpu()
 
-#     if color_channels == 1:
-#       plt.imshow(img.squeeze(), cmap='gray') # grey images
+#         if color_channels == 1:
+#             plt.imshow(img.squeeze(), cmap='gray') # grey images
 
-#     elif color_channels == 3:
-#       img = np.transpose(img.np(), (1, 2, 0)) # color images
-#       plt.imshow(img)
+#         elif color_channels == 3:
+#             img = np.transpose(img.np(), (1, 2, 0)) # color images
+#             plt.imshow(img)
 
-#     plt.title(f'Prediction: {pred}, Label: {lbl}')
+#         plt.title(f'Prediction: {pred}, Label: {lbl}')
 
-#     plt.show(block=False)
-#     plt.pause(1.5)
-#     plt.close()
+#         plt.show(block=False)
+#         plt.pause(1.5)
+#         plt.close()
 
 
 
 
 def loadPetImageStack(multiout):
 
-  if multiout:
-    img_batch = torch.load("petdatatensorsmultiout.pth")
-    label_batch = torch.load("pettargettensorsmultiout.pth")
-  else:
-    img_batch = torch.load("petdatatensors.pth")
-    label_batch = torch.load("pettargettensors.pth")
+    if multiout:
+        img_batch = torch.load("petdatatensorsmultiout.pth")
+        label_batch = torch.load("pettargettensorsmultiout.pth")
+    else:
+        img_batch = torch.load("petdatatensors.pth")
+        label_batch = torch.load("pettargettensors.pth")
 
-  return img_batch, label_batch
+    return img_batch, label_batch
 
 
 
@@ -133,13 +133,13 @@ def getPetImageTensor(transform, use):
 
     label = "dog" if np.random.randint(0, 2) == 1 else "cat"
     if use == "train":
-      num = np.random.randint(1, 801)
+        num = np.random.randint(1, 801)
     else:
-      num = np.random.randint(801, 1001)
-       
+        num = np.random.randint(801, 1001)
+
 
     img = Image.open( f"data/pets/{label}{num}.jpg" )
-        
+
     img.load()
     image = np.asarray( img, dtype="int32" )
 
@@ -208,32 +208,32 @@ def genPetImageStack(dataset_size, use, device_type, img_height, img_width, mult
 
 def fetchCNNParametersFromFile(device_type, directory):
 
-  model_params = {}
+    model_params = {}
 
-  # Use glob to get all files matching the pattern
-  kernel_pattern = "cnn_layer_*_kernels_*_*_*.pth"  # Pattern to match
-  kernel_files = glob.glob(os.path.join(directory, kernel_pattern))
-  kernel_files.sort()
+    # Use glob to get all files matching the pattern
+    kernel_pattern = "cnn_layer_*_kernels_*_*_*.pth"  # Pattern to match
+    kernel_files = glob.glob(os.path.join(directory, kernel_pattern))
+    kernel_files.sort()
 
-  bias_pattern = "cnn_layer_*_biases_*_*_*.pth"  # Pattern to match
-  bias_files = glob.glob(os.path.join(directory, bias_pattern))
-  bias_files.sort()
+    bias_pattern = "cnn_layer_*_biases_*_*_*.pth"  # Pattern to match
+    bias_files = glob.glob(os.path.join(directory, bias_pattern))
+    bias_files.sort()
 
 
-  regex_pattern = r"cnn_layer_(\d+)_kernels_(\w+)_([\w]+)_(\d+)\.pth"
-  
-  for (k_file, b_file) in zip(kernel_files, bias_files):
+    regex_pattern = r"cnn_layer_(\d+)_kernels_(\w+)_([\w]+)_(\d+)\.pth"
 
-    kernels = torch.load(k_file, map_location=device_type)
-    biases = torch.load(b_file, map_location=device_type)
+    for (k_file, b_file) in zip(kernel_files, bias_files):
 
-    match = re.search(regex_pattern, k_file)
+        kernels = torch.load(k_file, map_location=device_type)
+        biases = torch.load(b_file, map_location=device_type)
 
-    index = match.group(1)
-    activation = match.group(2)
-    layer_type = match.group(3)
-    stride = match.group(4)
+        match = re.search(regex_pattern, k_file)
 
-    model_params.update({f"CNN Layer {index}": [layer_type, kernels, biases, activation, stride, index] })
+        index = match.group(1)
+        activation = match.group(2)
+        layer_type = match.group(3)
+        stride = match.group(4)
 
-  return model_params
+        model_params.update({f"CNN Layer {index}": [layer_type, kernels, biases, activation, stride, index] })
+
+    return model_params

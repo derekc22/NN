@@ -17,7 +17,7 @@ class RNN(Network):
         
         if self.stateful:
             self.stateful_initialized = False
-        self.autoregressive = kwargs.get("autoregressive", False)
+        self.auto_regressive = kwargs.get("auto_regressive", False)
         self.teacher_forcing = kwargs.get("teacher_forcing", 0) # If no teacher_forcing factor is set (ie like at inference), the model should be 100% auto-regressive
 
         if not pretrained:
@@ -164,16 +164,16 @@ class RNN(Network):
 
             ht_l = [None] * self.num_layers
             ht_l[0] = activate(
-                ht1_l[0] @ whh_l[0] + bh_l[0] + 
-                x @ wxh_l[0], self.whh_nonlinearity)
+                torch.matmul(ht1_l[0], whh_l[0]) + bh_l[0] + 
+                torch.matmul(x, wxh_l[0]), self.whh_nonlinearity)
 
             for i in range(1, self.num_layers):
                 ht_l[i] = activate(
-                    ht1_l[i] @ whh_l[i] + bh_l[i] +
-                    ht_l[i-1] @ wxh_l[i], self.whh_nonlinearity)
+                    torch.matmul(ht1_l[i], whh_l[i]) + bh_l[i] +
+                    torch.matmul(ht_l[i-1], wxh_l[i]), self.whh_nonlinearity)
 
             Y[:, t, :] = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             
             ht1_l = ht_l
         
@@ -214,17 +214,17 @@ class RNN(Network):
             # ht_l = [None] * len(ht1_l)
             ht_l = [None] * self.num_layers
             ht_l[0] = activate(
-                ht1_l[0] @ whh_l[0] + bh_l[0] + 
-                x @ wxh_l[0], self.whh_nonlinearity)
+                torch.matmul(ht1_l[0], whh_l[0]) + bh_l[0] + 
+                torch.matmul(x, wxh_l[0]), self.whh_nonlinearity)
 
             # for i in range(1, len(ht_l)):
             for i in range(1, self.num_layers):
                 ht_l[i] = activate(
-                    ht1_l[i] @ whh_l[i] + bh_l[i] +
-                    ht_l[i-1] @ wxh_l[i], self.whh_nonlinearity)
+                    torch.matmul(ht1_l[i], whh_l[i]) + bh_l[i] +
+                    torch.matmul(ht_l[i-1], wxh_l[i]), self.whh_nonlinearity)
 
             y = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             Y[:, t, :] = y
             # print(y.shape)
 
@@ -257,8 +257,8 @@ class RNN(Network):
         """ if this is uncommented, it will force the pure teacher forcing LSTM implementations to run inference auto regressively (which i believe is the correct way to do it)
         however, since pure auto regressive inference currently sucks (both for the auto regressive and teacher forced implementations), i will leave it commented out such that I can at least see good results at inference for the teacher forced implementations
         but yeah i think this would be the more correct way to do it (i.e. to always run inference auto regressively) """
-        # if self.autoregressive or not training: 
-        if self.autoregressive:
+        # if self.auto_regressive or not training: 
+        if self.auto_regressive:
             return self.forwardAutoRegressive(X, training)
         return self.forwardNonAutoRegressive(X, training)
 

@@ -123,24 +123,19 @@ class Encoder:
 
 
 
-    def forward(self, X):
+    def feed(self, X):
         MH_A = self.multiHeadedAttention(X)
+        
         ZNorm1 = self.addNorm(X, MH_A, self.ln_1)
-        print(ZNorm1.shape)
-        # ZFF = torch.vmap(
-        #     self.feedForward,
-        #     in_dims=(1)
-        #     )(ZNorm1)
 
         batch_size, seq_len = X.shape[:2]
-
         ZFF = self.feedForward(
             ZNorm1.reshape(-1, self.d_model)
             ).reshape(batch_size, seq_len, self.d_model)
         
         ZNorm2 = self.addNorm(ZNorm1, ZFF, self.ln_2)
-
-        print(ZNorm2.shape)
+        
+        return ZNorm2
 
         
 
@@ -153,7 +148,7 @@ if __name__ == "__main__":
     x = torch.rand(size=(batch_size_, sequence_len, embedding_size))
     # x = torch.rand(size=(seq_len, embedding_size))
 
-    encode = Encoder(
+    encoder = Encoder(
         pretrained=False, 
         device_type="cpu", 
         embedding_size=embedding_size, 
@@ -161,5 +156,5 @@ if __name__ == "__main__":
         ff_neuron_count=64,
         ff_nonlinearity="GELU"
     )
-    encode.forward(x)
+    encoder.feed(x)
     # encode.computeHead(x)
