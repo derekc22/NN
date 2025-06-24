@@ -14,10 +14,10 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-05-26_20:48:05_lstm
-parameters_fpath: ./params/paramsLSTM/vanilla
+log_id: logs/2025-06-23_21:31:52_lstm
+parameters_fpath: ./params/lstm/vanilla
 specs:
-  auto_regressive: false
+  autoregressive: false
   device_type: cpu
   input_feature_count: 1
   stateful: false

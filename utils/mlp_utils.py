@@ -6,32 +6,32 @@ import glob, os, re
 
 def fetchMLPParametersFromFile(device_type, directory):
 
-  model_params = {}
+    model_params = {}
 
-  # Use glob to get all files matching the pattern
-  weight_pattern = "layer_*_weights_*.pth"  # Pattern to match
-  weight_files = glob.glob(os.path.join(directory, weight_pattern))
-  weight_files.sort()
+    # Use glob to get all files matching the pattern
+    weight_pattern = "layer_*_weights_*.pth"  # Pattern to match
+    weight_files = glob.glob(os.path.join(directory, weight_pattern))
+    weight_files.sort()
 
-  bias_pattern = "layer_*_biases_*.pth"  # Pattern to match
-  bias_files = glob.glob(os.path.join(directory, bias_pattern))
-  bias_files.sort()
+    bias_pattern = "layer_*_biases_*.pth"  # Pattern to match
+    bias_files = glob.glob(os.path.join(directory, bias_pattern))
+    bias_files.sort()
 
 
-  for (w_file, b_file) in zip(weight_files, bias_files):
+    for (w_file, b_file) in zip(weight_files, bias_files):
 
-    weights = torch.load(w_file, map_location=device_type)
-    biases = torch.load(b_file, map_location=device_type)
+        weights = torch.load(w_file, map_location=device_type)
+        biases = torch.load(b_file, map_location=device_type)
 
-    regex_pattern = r"layer_(\d+)_weights_(.*?)\.pth"
-    match = re.search(regex_pattern, w_file)
+        regex_pattern = r"layer_(\d+)_weights_(.*?)\.pth"
+        match = re.search(regex_pattern, w_file)
 
-    index = match.group(1)
-    activation = match.group(2)
+        index = match.group(1)
+        activation = match.group(2)
 
-    model_params.update({f"Layer {index}": [weights, biases, activation, index] })
+        model_params.update({f"Layer {index}": [weights, biases, activation, index] })
 
-  return model_params
+    return model_params
 
 
 
@@ -62,11 +62,11 @@ def genMatrixStack(n, d=5):
 
 
 if __name__ == "__main__":
-  # genPetImageStack(15, 64, 64, False, False, 1)
+    # genPetImageStack(15, 64, 64, False, False, 1)
 
-  # idk = fetchMLPParametersFromFile("cpu", "/params/paramsMLP")
-  # idk = fetchCNNParametersFromFile("cpu", "./params/paramsCNN")
-  
-  idk1, idk2 = genMatrixStack(5, 2)
-  print(idk1)
-  print(idk2)
+    # idk = fetchMLPParametersFromFile("cpu", "/params/paramsMLP")
+    # idk = fetchCNNParametersFromFile("cpu", "./params/paramsCNN")
+
+    idk1, idk2 = genMatrixStack(5, 2)
+    print(idk1)
+    print(idk2)

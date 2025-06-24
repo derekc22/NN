@@ -17,8 +17,8 @@ class LSTM(Network):
         
         if self.stateful:
             self.stateful_initialized = False
-        self.autoregressive = kwargs.get("autoregressive", False)
-        self.autoregressive = kwargs.get("autoregressive", False)
+        self.auto_regressive = kwargs.get("auto_regressive", False)
+        self.auto_regressive = kwargs.get("auto_regressive", False)
         self.teacher_forcing = kwargs.get("teacher_forcing")
 
         if not pretrained:
@@ -160,12 +160,12 @@ class LSTM(Network):
 
     def calculateState(self, x, ht1_i, Ct1_i, wf_i, bf_i, wi_i, bi_i, wc_i, bc_i, wo_i, bo_i ):
         ht1_xt_i = torch.cat([ht1_i, x], dim=1)
-        ft = activate(ht1_xt_i @ wf_i + bf_i, self.gate_nonlinearity)
-        it = activate(ht1_xt_i @ wi_i + bi_i, self.gate_nonlinearity)
-        Ct_tilde = torch.tanh(ht1_xt_i @ wc_i + bc_i)
-        ot = activate(ht1_xt_i @ wo_i + bo_i, self.gate_nonlinearity)
-        Ct = ft * Ct1_i + it * Ct_tilde
-        ht_i = ot * torch.tanh(Ct)
+        ft = activate(torch.matmul(ht1_xt_i, wf_i) + bf_i, self.gate_nonlinearity)
+        it = activate(torch.matmul(ht1_xt_i, wi_i) + bi_i, self.gate_nonlinearity)
+        Ct_tilde = torch.tanh(torch.matmul(ht1_xt_i, wc_i) + bc_i)
+        ot = activate(torch.matmul(ht1_xt_i, wo_i) + bo_i, self.gate_nonlinearity)
+        Ct = torch.mul(ft, Ct1_i) + torch.mul(it, Ct_tilde)
+        ht_i = torch.mul(ot, torch.tanh(Ct))
 
         return ht_i
     
@@ -229,7 +229,7 @@ class LSTM(Network):
             
             # print("done")
             Y[:, t, :] = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             
             ht1_l = ht_l
 
@@ -298,7 +298,7 @@ class LSTM(Network):
                 )
             
             y = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                torch.matmul(ht_l[-1], why) + by, self.why_nonlinearity)
             Y[:, t, :] = y
             
             ht1_l = ht_l
@@ -330,8 +330,8 @@ class LSTM(Network):
         """ if this is uncommented, it will force the pure teacher forcing LSTM implementations to run inference auto regressively (which i believe is the correct way to do it)
         however, since pure auto regressive inference currently sucks (both for the auto regressive and teacher forced implementations), i will leave it commented out such that I can at least see good results at inference for the teacher forced implementations
         but yeah i think this would be the more correct way to do it (i.e. to always run inference auto regressively) """
-        # if self.autoregressive or not training: 
-        if self.autoregressive:
+        # if self.auto_regressive or not training: 
+        if self.auto_regressive:
             return self.forwardAutoRegressive(X, training)
         return self.forwardNonAutoRegressive(X, training)
 
