@@ -10,39 +10,46 @@ This project provides implementations of different neural network models includi
 - Convolutional Neural Network (CNN)
 - Recurrent Neural Network (RNN)
 - Long Short-Term Memory (LSTM)
-
-The models are designed to be modular and extensible.
+- Transformer [Work in Progress]
 
 ## Models
 
 ### Multi-Layer Perceptron (MLP)
-- Fully connected feed-forward neural network.
-- Customizable architecture with variable hidden layers.
-- Support for different activation functions.
-- Example: Matrix symmetry classification.
+- **Architecture**: Fully connected feed-forward neural network with customizable hidden layers
+- **Features**: Variable layer sizes, multiple activation function support
+- **Use Cases**: Tabular data classification, regression tasks, function approximation
+- **Example**: `python main/main_mlp.py --mode train` (stress tensor classification)
 
 ### Convolutional Neural Network (CNN)
-- Custom implementation of convolutional and pooling layers.
-- Integrated with MLP for the fully connected layers.
-- Example: Pet (cat/dog) image classification.
+- **Architecture**: Custom convolutional and pooling layers integrated with fully connected layers
+- **Features**: Feature extraction through convolution, spatial hierarchy learning
+- **Use Cases**: Image recognition, object detection, medical imaging analysis
+- **Example**: `python main/main_cnn.py --mode train` (pet image classification)
 
 ### Recurrent Neural Network (RNN)
-- Capable of processing sequential data and time series.
-- Supports stateful and stateless training/inference.
-- Implemented with auto-regressive capabilities.
-- Example: Sine wave prediction, text generation.
+- **Architecture**: Sequential processing network with memory capabilities
+- **Features**: Stateful/stateless training, autoregressive capabilities, temporal dependency modeling
+- **Use Cases**: Text generation, stock price prediction, sensor data analysis
+- **Example**: `python main/main_rnn.py --mode train` (sine wave prediction)
 
 ### Long Short-Term Memory (LSTM)
-- An advanced type of RNN, designed to better capture long-range dependencies.
-- Implemented with auto-regressive capabilities.
-- Example: Sine wave prediction (see `config/auto_regressive_lstm.yml` and `main/main_auto_regressive_lstm.py`).
+- **Architecture**: RNN variant with gating mechanisms for long-range dependencies
+- **Features**: Forget/input/output gates, autoregressive capabilities, improved gradient flow
+- **Use Cases**: Language modeling, speech recognition, anomaly detection in time series
+- **Example**: `python main/main_auto_regressive_lstm.py --mode train` (sine wave prediction)
+
+### Transformer (Work in Progress)
+- **Architecture**: Attention-based architecture with self-attention mechanisms
+- **Features**: Parallel processing, multi-head attention, positional encoding
+- **Use Cases**: Machine translation, text summarization
+- **Example**: Currently under development
 
 ## Project Structure
 
 - **`archive/`**: Contains older versions or experimental code.
 - **`backup/`**: Stores backups of training runs, logs, and model weights for good performing models.
 - **`config/`**: YAML configuration files for each model (e.g., [`auto_regressive_lstm.yml`](config/auto_regressive_lstm.yml), [`rnn.yml`](config/rnn.yml)).
-- **`data/`**: Datasets used for training and testing (e.g., `pets/`, `text/`).
+- **`data/`**: Toy datasets used for training and testing examples (e.g., `pets/`, `text/`).
 - **`documents/`**: Project-related documents.
 - **`figures/`**: Saved plots and figures from model training or analysis.
 - **`logs/`**: Logging directory, including training loss curves and configuration snapshots.
@@ -55,6 +62,8 @@ The models are designed to be modular and extensible.
 - **[`todo.txt`](todo.txt)**: A list of tasks and planned features.
 - **[`requirements.txt`](requirements.txt)**: Python package dependencies.
 - **[`run.sh`](run.sh)**: A bash script to simplify running training and inference.
+- **[`train.sh`](train.sh)**: Dedicated training script for streamlined model training.
+- **[`test.sh`](test.sh)**: Dedicated testing script for model evaluation and inference.
 
 ## Installation
 
@@ -68,11 +77,11 @@ The models are designed to be modular and extensible.
 
 ### Running Models
 
-There are two primary ways to run the models:
+There are multiple ways to run the models:
 
 1.  **Using individual main scripts:**
 
-    Each model has its own main script in the `main/` directory. You can run them directly, specifying the mode (train/test) and other options. Configuration for these scripts is typically managed through corresponding YAML files in the `config/` directory.
+    Each model has its own main script in the `main/` directory. You can run them directly, specifying the mode (train/test) and other options. Configuration for these scripts is managed through corresponding YAML files in the `config/` directory.
 
     ```bash
     # Example: Train a new MLP model
@@ -81,25 +90,52 @@ There are two primary ways to run the models:
     # Example: Test with a pretrained CNN model
     python main/main_cnn.py --mode test --pretrained
 
-    # Example: Train an auto-regressive LSTM
+    # Example: Train an autoregressive LSTM
     python main/main_auto_regressive_lstm.py --mode train
     ```
     Refer to the specific `main_<model_type>.py` script and its associated `config/<model_type>.yml` file for more details on configurable parameters.
 
-2.  **Using the `run.sh` script:**
+2.  **Using the shell scripts:**
 
-    The [`run.sh`](run.sh) script provides a convenient way to execute training and inference. It typically handles the selection of the correct main script and configuration file.
-
+    - **[`run.sh`](run.sh)**: Runs both training and testing sequentially
     ```bash
+    # Usage: ./run.sh <model_name> [pretrained]
+    
     # Example: Run the rnn model (assumes rnn.yml config exists)
     ./run.sh rnn
+    
+    # Example: Run with pretrained weights
+    ./run.sh rnn pretrained
     ```
-    Ensure the script has execute permissions (`chmod +x run.sh`). The script expects the model name as an argument, which corresponds to the main script file (e.g., `rnn` for `main_rnn.py`) and its configuration file (`rnn.yml`).
+    
+    - **[`train.sh`](train.sh)**: Runs training only
+    ```bash
+    # Usage: ./train.sh <model_name> [pretrained]
+    
+    # Example: Train a specific model
+    ./train.sh lstm
+    
+    # Example: Train using pretrained weights
+    ./train.sh lstm pretrained
+    ```
+    
+    - **[`test.sh`](test.sh)**: Runs testing/inference only
+    ```bash
+    # Usage: ./test.sh <model_name>
+    
+    # Example: Test a trained model
+    ./test.sh cnn
+    ```
+    
+    **Arguments:**
+    - `<model_name>` (required): The model type to run (e.g., `rnn`, `lstm`, `cnn`, `mlp`)
+    - `pretrained` (optional): Use pretrained weights for training (only available for `run.sh` and `train.sh`)
+    
+    Ensure the scripts have execute permissions (`chmod +x *.sh`). The scripts expect the model name as an argument, which corresponds to the main script file and its configuration file.
 
 ## Logging and Backups
 - Training progress, including loss curves and configuration files, is logged in the `logs/` directory.
-- Successful training runs and model checkpoints are often backed up in the `backup/` directory.
 
 ## Development Notes
-- For a detailed history of changes and features, see [`changes.txt`](changes.txt).
-- For planned features and tasks, refer to [`todo.txt`](todo.txt).
+- For a loosely maintained history of changes and features, see [`changes.txt`](changes.txt).
+- For a loosely maintained list of planned features and tasks, refer to [`todo.txt`](todo.txt).
