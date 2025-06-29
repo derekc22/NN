@@ -1,8 +1,8 @@
 architecture:
-  gate_activation_function: sigmoid
+  gate_activation_fn: sigmoid
   gate_neuron_counts:
   - 64
-  output_activation_function: none
+  output_activation_fn: none
   output_feature_count: 1
 hyperparameters:
   batch_size: 64

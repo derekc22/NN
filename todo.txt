@@ -8,7 +8,7 @@
 05/22/2025
     - test rnn_text.py in autoregressive mode
     - integrate and test gradient clipping in other models' backward() methods
-    - register/wrap weights/biases in torch.nn.Parameter() so that Network._collect_parameters() can be replaced with a call to torch.nn.Module.parameters() when attempting to clip gradients
+    - register/wrap weights/biases in torch.nn.Parameter() so that Network.collectParameters() can be replaced with a call to torch.nn.Module.parameters() when attempting to clip gradients
 
 05/25/2025
     - (DONE: 05/25/2025) change 'self.is_conv_layer' in the cnn class to self.type == 'conv' or 'pool' to match the conventions of other architectures
@@ -22,9 +22,15 @@
     - implement and test a lstm_text.py model
 
 06/18/2025
-    - get rid of 'Layer' class and instead just implement each activation function as a pure function instead of as a method of the class
+    - (DONE: 06/23/2025) get rid of 'Layer' class and instead just implement each activation function as a pure function instead of as a method of the class
 
 06/21/2025
     - rename 'curr_input' to just 'X' in the training loop for all models
     - (DONE: 06/23/2025) rename convolutional.py and CNNLayer to something like cnn_layer.py and CNNLayer, respectively since (obviously) not all layer in CNNs are convolutional. This will aid readability and clarity.
     - add custom implementations of batchNorm and layerNorm to src/functions.py
+
+06/25/2025
+    - refactor rnn and lstm models to maintain a consistent structure with the mlp, cnn, and transformer models (where much of the tensor manipulation is done within the elementary cell classes rather than in the model class itself)
+
+06/28/2025
+    - possibly add assert to cnn_layer.py to ensure that kernel size + stride divides evenly into the input size

@@ -27,7 +27,7 @@ class Network:
 
 
 
-    def _collect_parameters(self):
+    def collectParameters(self):
         """
         Walk self.layers and return a flat list of all weight Tensors whose
         .grad you want to clip. Adapt these attribute names to match your layers.
@@ -48,10 +48,10 @@ class Network:
 
     def clipGradients(self):
         """
-        Apply PyTorch’s native clipping to the gradients in-place.
+        Apply PyTorch's native clipping to the gradients in-place.
         Call immediately after loss.backward().
         """
-        params = self._collect_parameters()
+        params = self.collectParameters()
         # print(len(params))
 
         # grads = [p.grad for p in params if p.grad is not None]
@@ -477,3 +477,22 @@ class Network:
                 if layer.type == "output":
                     layer.why.grad = None
                     layer.by.grad = None
+                    
+
+
+
+    def backprop(self, loss):
+        self.zerograd()
+
+        loss.backward()
+
+        if self.grad_clip_norm is not None or self.grad_clip_value is not None:
+            self.clipGradients()
+
+        with torch.no_grad():
+
+            if not self.optimizer:
+                self.update()
+            else:
+                self.t += 1
+                self.optimizerUpdate()

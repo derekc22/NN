@@ -12,8 +12,8 @@ class RNNCell():
 
         self.index = int(kwargs.get("index"))
         self.device_type = device_type
-        self.whh_nonlinearity = kwargs.get("hidden_activation_function")
-        self.why_nonlinearity = kwargs.get("output_activation_function") 
+        self.whh_nonlinearity = kwargs.get("hidden_nonlinearity")
+        self.why_nonlinearity = kwargs.get("output_nonlinearity") 
         self.type = kwargs.get("type")
         # self.batch_size = kwargs.get("batch_size")
         

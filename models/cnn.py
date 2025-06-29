@@ -3,6 +3,8 @@ from src.network import Network
 from models.mlp import MLP
 from src.cnn_layer import CNNLayer
 import torch
+from typing_extensions import override
+
 
 class CNN(Network):
 
@@ -45,7 +47,8 @@ class CNN(Network):
             pretrained_biases=biases, 
             nonlinearity=nonlinearity,
             kernel_stride=stride, 
-            index=index) for (layer_type, kernels, biases, nonlinearity, stride, index) in model_params.values()]
+            index=index) for (layer_type, kernels, biases, nonlinearity, stride, index) in model_params.values()
+        ]
 
         return layers
 
@@ -55,18 +58,20 @@ class CNN(Network):
         filter_counts = architecture.get("filter_counts")
         kernel_shapes = architecture.get("kernel_shapes")
         kernel_strides = architecture.get("kernel_strides")
-        activation_functions = architecture.get("activation_functions")
+        activation_fns = architecture.get("activation_fns")
         num_layers = len(layer_types)
 
-        layers = [CNNLayer(
+        layers = [
+            CNNLayer(
             pretrained=False, 
             device_type=self.device_type, 
             type=layer_types[i], 
             filter_count=filter_counts[i],
             kernel_shape=kernel_shapes[i], 
             kernel_stride=kernel_strides[i], 
-            nonlinearity=activation_functions[i], 
-            index=i+1) for i in range(num_layers)]
+            nonlinearity=activation_fns[i], 
+            index=i+1) for i in range(num_layers)
+        ]
 
         return layers
 
@@ -127,8 +132,8 @@ class CNN(Network):
 
         if dummy:
             return flattened_feature_map
-        else:
-            return self.MLP.forward(flattened_feature_map, training=training)
+
+        return self.MLP.forward(flattened_feature_map, training=training)
 
 
 
@@ -152,7 +157,7 @@ class CNN(Network):
 
 
 
-
+    @override
     def backprop(self, loss):
 
         self.zerograd()

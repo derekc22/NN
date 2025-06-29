@@ -77,19 +77,12 @@ class Encoder:
 
 
 
-    def computeQKV(self, X):
-        # b = batch_dim
-        # s = seq_len
-        # e = embedding_dim
-        # h = num_heads
-        # k = dk
-        Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
-        K = torch.einsum("bse,hek->bhsk", X, self.WK)
-        V = torch.einsum("bse,hek->bhsk", X, self.WV)
+    def computeQKV(self, X, WQ, WK, WV):
+        Q = X @ WQ
+        K = X @ WK
+        V = X @ WV
         # print("tester")
         # print(Q.grad_fn, Q.is_contiguous())
-        # print(K.grad_fn, K.is_contiguous())
-        # print(V.grad_fn, V.is_contiguous())
         # print((K.mT).grad_fn, (K.mT).is_contiguous())
         # print((Q @ K.mT).grad_fn, (Q @ K.mT).is_contiguous())
         # exit()
@@ -97,29 +90,37 @@ class Encoder:
 
 
     def attention(self, Q, K, V):
-        KT = K.transpose(-1, -2)
-        return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
+        return softmax( (Q @ K.mT) / self.dk**0.5, dim=-1 ) @ V
 
     def computeHeads(self, X):
-        # X : (batch, seq_len, d_model)
+        # X is ( batch x n/sequenceLength/numTokens x d_model )
 
-        Q, K, V = self.computeQKV(X)
-    
-        H_ = self.attention(Q, K, V)        # (batch, h, seq_len, dk)
-
-        # reorder to (batch, seq_len, h, dk) then flatten heads
-        H__ = H_.permute(0, 2, 1, 3)    # (batch, seq_len, h, dk)
-        batch_size, seq_len = X.shape[:2]
-        H = H__.reshape(batch_size, seq_len, self.d_model)   # (batch, seq_len, d_model)
+        Q, K, V = torch.vmap(
+            self.computeQKV, 
+            in_dims=(None, 0, 0, 0)
+            )(X, self.WQ, self.WK, self.WV)
         
+        H_ = self.attention(Q, K, V)  # (h, seq_len, dk)
+
+        # H = H_.reshape(-1, self.h * self.dk) # !!! THIS IS TOTALLY WRONG !!!
+        seq_len = X.shape[0]
+        H = H_.permute(1, 0, 2).reshape(seq_len, self.h * self.dk)
+
         return H
 
 
     def multiHeadedAttention(self, X):
-        # X : (batch, seq_len, d_model)
-        H = self.computeHeads(X)                   # (batch, seq_len, d_model)
-        return H @ self.WO                        # (batch, seq_len, d_model)
+        H = torch.vmap(
+            self.computeHeads,
+            in_dims=(0)
+            )(X)
 
+        MH_A = H @ self.WO
+        
+        # print(H.shape)
+        # print(self.WO.shape)
+
+        return MH_A
 
 
     def addNorm(self, X, Y, ln):
@@ -146,11 +147,14 @@ class Encoder:
             ).reshape(batch_size, seq_len, self.d_model)
         
         ZNorm2 = self.addNorm(ZNorm1, ZFF, self.ln_2)
-        # print(ZNorm2.shape)
+        # print(ZNorm2.shape)        
         # print(ZNorm2)
         # exit()
         
         return ZNorm2
+
+        
+
 
 
 if __name__ == "__main__":
@@ -158,7 +162,6 @@ if __name__ == "__main__":
     sequence_len = 3
     embedding_size = 4
     num_heads = 2
-    
     x = torch.rand(size=(batch_size_, sequence_len, embedding_size))
     # x = torch.rand(size=(seq_len, embedding_size))
 
@@ -171,3 +174,4 @@ if __name__ == "__main__":
         ff_nonlinearity="GELU"
     )
     encoder.feed(x)
+    # encode.computeHead(x)

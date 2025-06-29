@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from src.functions import activate
+from utils.functions import activate
 
 
 class DenseLayer:

@@ -1,5 +1,5 @@
 architecture:
-  activation_functions:
+  activation_fns:
   - leakyReLU
   - leakyReLU
   - leakyReLU
@@ -15,7 +15,7 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-18_17:52:17_mlp
+log_id: logs/2025-06-28_21:21:06_mlp
 parameters_fpath: ./params/mlp
 specs:
   device_type: cpu
@@ -24,6 +24,6 @@ test:
   show_results: false
   test_dataset_size: 100
 train:
-  epochs: 5000
+  epochs: 500
   show_loss_plot: true
-  train_dataset_size: 5000
+  train_dataset_size: 500

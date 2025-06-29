@@ -24,8 +24,8 @@ architecture:
     # hidden_state_neuron_counts: [4, 8]
     # hidden_state_neuron_counts: [16]
     output_feature_count: 100
-    hidden_activation_function: "tanh"
-    output_activation_function: "reLU"
+    hidden_activation_fn: "tanh"
+    output_activation_fn: "reLU"
 
 #------------------------------------------------------------------------------------------------------------------------
 test:

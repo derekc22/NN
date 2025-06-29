@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from src.functions import activate
+from utils.functions import activate
 
 
 
@@ -78,9 +78,13 @@ class CNNLayer:
 
         img_batch_size, img_channel_count, img_height, img_width = imgs.size()
 
-        img_slices_stack = imgs.unfold(dimension=2, size=self.kernel_height, step=self.kernel_stride).unfold(dimension=3, size=self.kernel_width, step=self.kernel_stride).reshape(img_batch_size, img_channel_count, -1, self.kernel_height, self.kernel_width)
+        img_slices_stack = imgs.unfold(
+            dimension=2, size=self.kernel_height, step=self.kernel_stride).unfold(
+            dimension=3, size=self.kernel_width, step=self.kernel_stride).reshape(
+            img_batch_size, img_channel_count, -1, self.kernel_height, self.kernel_width)
+            
         # num_slices = img_slices_stack.size(dim=2)
-        img_slices_stack = img_slices_stack.to(self.device_type)
+        # img_slices_stack = img_slices_stack.to(self.device_type)
 
 
         result = func(img_slices_stack)
@@ -110,7 +114,7 @@ class CNNLayer:
             feature_map = activate(feature_map, self.nonlinearity)
 
 
-        feature_map = feature_map.to(self.device_type)
+        # feature_map = feature_map.to(self.device_type)
 
 
         return feature_map
