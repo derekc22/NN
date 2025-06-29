@@ -15,7 +15,7 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-28_21:21:06_mlp
+log_id: logs/2025-06-29_00:46:47_mlp
 parameters_fpath: ./params/mlp
 specs:
   device_type: cpu

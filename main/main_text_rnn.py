@@ -41,7 +41,7 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
+            model_params=fetch_rnn_params_from_file(device_type, parameters_fpath),
             stateful=stateful,
             batch_size=train_dataset_size,
         )
@@ -64,9 +64,15 @@ if mode == "train":
     data_batch = torch.load("data/text/embeddings/data_batch.pth")[:train_dataset_size]
     label_batch = torch.load("data/text/embeddings/label_batch.pth")[:train_dataset_size]
         
-    (epoch_plt, loss_plt) = rnn.train(data_batch, label_batch, epochs, save_params=True)
+    epoch_plt, loss_plt = rnn.train(
+        data=data_batch, 
+        target=label_batch, 
+        epochs=epochs, 
+        save_params=True
+    )
+    
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt)
+        plot_training_resultsepoch_plt, loss_plt
 
 # Testing mode
 
@@ -79,7 +85,7 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
+        model_params=fetch_rnn_params_from_file(device_type, parameters_fpath),
         stateful=stateful,
         batch_size=test_dataset_size,
     )
@@ -87,7 +93,7 @@ else:
     data_batch = torch.load("data/text/embeddings/data_batch.pth")[:test_dataset_size]
     prediction_batch = rnn.inference(data_batch)
 
-    decoded_sentence = decodeParagraph(prediction_batch, input_feature_count)
+    decoded_sentence = decode_paragraph(prediction_batch, input_feature_count)
     print(decoded_sentence)
 
 

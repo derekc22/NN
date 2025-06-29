@@ -23,9 +23,9 @@ class RNN(Network):
         if not pretrained:
             architecture = kwargs.get("architecture")
             self.input_feature_count = kwargs.get("input_feature_count")
-            self.layers = self.buildLayers(architecture=architecture)
+            self.layers = self.build_layers(architecture=architecture)
         else:
-            self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
+            self.layers = self.load_layers(model_params=kwargs.get("model_params"))
 
         self.whh_nonlinearity = self.layers[0].whh_nonlinearity
         self.why_nonlinearity = self.layers[-1].why_nonlinearity
@@ -35,13 +35,13 @@ class RNN(Network):
         self.num_layers = len(self.layers)
 
         if training and self.optimizer:
-            self.setOptimizer()
+            self.set_optimizer()
 
 
 
 
 
-    def loadLayers(self, model_params):
+    def load_layers(self, model_params):
         
         layers = [ 
             
@@ -72,7 +72,7 @@ class RNN(Network):
 
 
 
-    def buildLayers(self, architecture):
+    def build_layers(self, architecture):
         hidden_state_neuron_counts = architecture.get("hidden_state_neuron_counts")
         hidden_activation_fn = architecture.get("hidden_activation_fn")
         output_activation_fn = architecture.get("output_activation_fn")
@@ -110,7 +110,7 @@ class RNN(Network):
         return layers
     
 
-    def saveParameters(self):
+    def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
             layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
@@ -126,7 +126,7 @@ class RNN(Network):
 
 
 
-    def resetHiddenState(self, batch_size):
+    def reset_hidden_state(self, batch_size):
         return [torch.zeros(
             size=(batch_size, layer.wxh_neuron_count), 
             dtype=torch.float32, 
@@ -134,7 +134,7 @@ class RNN(Network):
 
 
 
-    def forwardNonAutoRegressive(self, X, training):
+    def forward_non_autoregressive(self, X, training):
         """
         No autoregressive handling - working
         """
@@ -144,10 +144,10 @@ class RNN(Network):
 
         if self.stateful and not self.state_initialized: 
             for layer in self.layers: 
-                layer.generateState(batch_size)
+                layer.generate_state(batch_size)
             self.state_initialized = True
 
-        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.resetHiddenState(batch_size)
+        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.reset_hidden_state(batch_size)
         whh_l = [layer.whh for layer in self.layers]
         wxh_l = [layer.wxh for layer in self.layers]
         bh_l  = [layer.bh  for layer in self.layers]
@@ -187,17 +187,17 @@ class RNN(Network):
         return Y
  
 
-    def forwardAutoRegressive(self, X, training):
+    def forward_autoregressive(self, X, training):
         
         T = X.shape[1] 
         batch_size = X.shape[0]
 
         if self.stateful and not self.state_initialized: 
             for layer in self.layers: 
-                layer.generateState(batch_size)
+                layer.generate_state(batch_size)
             self.state_initialized = True
 
-        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.resetHiddenState(batch_size)
+        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.reset_hidden_state(batch_size)
         whh_l = [layer.whh for layer in self.layers]
         wxh_l = [layer.wxh for layer in self.layers]
         bh_l  = [layer.bh  for layer in self.layers]
@@ -254,14 +254,14 @@ class RNN(Network):
 
     
 
-    def forward(self, X, training):
+    def forward(self, X, training, **kwargs):
         """ if this is uncommented, it will force the pure teacher forcing LSTM implementations to run inference auto regressively (which i believe is the correct way to do it)
         however, since pure auto regressive inference currently sucks (both for the auto regressive and teacher forced implementations), i will leave it commented out such that I can at least see good results at inference for the teacher forced implementations
         but yeah i think this would be the more correct way to do it (i.e. to always run inference auto regressively) """
         # if self.autoregressive or not training: 
         if self.autoregressive:
-            return self.forwardAutoRegressive(X, training)
-        return self.forwardNonAutoRegressive(X, training)
+            return self.forward_autoregressive(X, training)
+        return self.forward_non_autoregressive(X, training)
 
 
 
@@ -273,7 +273,7 @@ class RNN(Network):
     #     loss.backward()
 
     #     if self.grad_clip_norm is not None or self.grad_clip_value is not None:
-    #         self.clipGradients()
+    #         self.clip_gradients()
 
     #     with torch.no_grad():
 
@@ -281,4 +281,4 @@ class RNN(Network):
     #             self.update()
     #         else:
     #             self.t += 1
-    #             self.optimizerUpdate()
+    #             self.optimizer_update()

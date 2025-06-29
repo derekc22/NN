@@ -24,9 +24,9 @@ class LSTM(Network):
         if not pretrained:
             architecture = kwargs.get("architecture")
             self.input_feature_count = kwargs.get("input_feature_count")
-            self.layers = self.buildLayers(architecture=architecture)
+            self.layers = self.build_layers(architecture=architecture)
         else:
-            self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
+            self.layers = self.load_layers(model_params=kwargs.get("model_params"))
 
         self.gate_nonlinearity = self.layers[0].gate_nonlinearity
         self.why_nonlinearity = self.layers[-1].why_nonlinearity
@@ -37,13 +37,13 @@ class LSTM(Network):
         self.num_layers = len(self.layers)
 
         if training and self.optimizer:
-            self.setOptimizer()
+            self.set_optimizer()
 
 
 
 
 
-    def loadLayers(self, model_params):
+    def load_layers(self, model_params):
         
         layers = [ 
 
@@ -84,7 +84,7 @@ class LSTM(Network):
 
 
 
-    def buildLayers(self, architecture):
+    def build_layers(self, architecture):
 
         gate_neuron_counts = architecture.get("gate_neuron_counts")
         gate_activation_fn = architecture.get("gate_activation_fn")
@@ -121,7 +121,7 @@ class LSTM(Network):
         return layers
     
 
-    def saveParameters(self):
+    def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
             layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
@@ -145,20 +145,20 @@ class LSTM(Network):
 
 
 
-    def resetHiddenState(self, batch_size):
+    def reset_hidden_state(self, batch_size):
         return [torch.zeros(
             size=(batch_size, layer.gate_neuron_count), 
             dtype=torch.float32, 
             device=self.device_type) for layer in self.layers]
 
-    def resetCellState(self, batch_size):
+    def reset_cell_state(self, batch_size):
         return [torch.zeros(
             size=(batch_size, layer.gate_neuron_count), 
             dtype=torch.float32, 
             device=self.device_type) for layer in self.layers]
 
 
-    def calculateState(self, x, ht1_i, Ct1_i, wf_i, bf_i, wi_i, bi_i, wc_i, bc_i, wo_i, bo_i ):
+    def calculate_state(self, x, ht1_i, Ct1_i, wf_i, bf_i, wi_i, bi_i, wc_i, bc_i, wo_i, bo_i ):
         ht1_xt_i = torch.cat([ht1_i, x], dim=1)
         ft = activate(ht1_xt_i @ wf_i + bf_i, self.gate_nonlinearity)
         it = activate(ht1_xt_i @ wi_i + bi_i, self.gate_nonlinearity)
@@ -171,7 +171,7 @@ class LSTM(Network):
     
 
 
-    def forwardNonAutoRegressive(self, X, training):
+    def forward_non_autoregressive(self, X, training):
         """
         No autoregressive handling - working
         """
@@ -181,11 +181,11 @@ class LSTM(Network):
 
         if self.stateful and not self.state_initialized: 
             for layer in self.layers: 
-                layer.generateState(batch_size)
+                layer.generate_state(batch_size)
             self.state_initialized = True
 
-        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.resetHiddenState(batch_size)
-        Ct1_l = [layer.Ct1 for layer in self.layers] if self.stateful else self.resetCellState(batch_size)
+        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.reset_hidden_state(batch_size)
+        Ct1_l = [layer.Ct1 for layer in self.layers] if self.stateful else self.reset_cell_state(batch_size)
         
         wf_l = [layer.wf for layer in self.layers]
         bf_l = [layer.bf for layer in self.layers]
@@ -207,7 +207,7 @@ class LSTM(Network):
 
             ht_l = [None] * self.num_layers
 
-            ht_l[0] = self.calculateState(
+            ht_l[0] = self.calculate_state(
                     x, 
                     ht1_l[0], Ct1_l[0], 
                     wf_l[0], bf_l[0], 
@@ -218,7 +218,7 @@ class LSTM(Network):
 
             for i in range(1, self.num_layers):
                 # print("num_layers:", self.num_layers)
-                ht_l[i] = self.calculateState(
+                ht_l[i] = self.calculate_state(
                     ht_l[i-1], 
                     ht1_l[i], Ct1_l[i], 
                     wf_l[i], bf_l[i], 
@@ -241,7 +241,7 @@ class LSTM(Network):
  
 
 
-    def forwardAutoRegressive(self, X, training):
+    def forward_autoregressive(self, X, training):
         """
         Autoregressive handling - working
         """
@@ -251,11 +251,11 @@ class LSTM(Network):
 
         if self.stateful and not self.state_initialized: 
             for layer in self.layers: 
-                layer.generateState(batch_size)
+                layer.generate_state(batch_size)
             self.state_initialized = True
 
-        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.resetHiddenState(batch_size)
-        Ct1_l = [layer.Ct1 for layer in self.layers] if self.stateful else self.resetCellState(batch_size)
+        ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.reset_hidden_state(batch_size)
+        Ct1_l = [layer.Ct1 for layer in self.layers] if self.stateful else self.reset_cell_state(batch_size)
         
         wf_l = [layer.wf for layer in self.layers]
         bf_l = [layer.bf for layer in self.layers]
@@ -277,7 +277,7 @@ class LSTM(Network):
 
             ht_l = [None] * self.num_layers
 
-            ht_l[0] = self.calculateState(
+            ht_l[0] = self.calculate_state(
                     x, 
                     ht1_l[0], Ct1_l[0], 
                     wf_l[0], bf_l[0], 
@@ -288,7 +288,7 @@ class LSTM(Network):
 
             for i in range(1, self.num_layers):
 
-                ht_l[i] = self.calculateState(
+                ht_l[i] = self.calculate_state(
                     ht_l[i-1], 
                     ht1_l[i], Ct1_l[i], 
                     wf_l[i], bf_l[i], 
@@ -326,14 +326,14 @@ class LSTM(Network):
 
 
 
-    def forward(self, X, training):
+    def forward(self, X, training, **kwargs):
         """ if this is uncommented, it will force the pure teacher forcing LSTM implementations to run inference auto regressively (which i believe is the correct way to do it)
         however, since pure auto regressive inference currently sucks (both for the auto regressive and teacher forced implementations), i will leave it commented out such that I can at least see good results at inference for the teacher forced implementations
         but yeah i think this would be the more correct way to do it (i.e. to always run inference auto regressively) """
         # if self.autoregressive or not training: 
         if self.autoregressive:
-            return self.forwardAutoRegressive(X, training)
-        return self.forwardNonAutoRegressive(X, training)
+            return self.forward_autoregressive(X, training)
+        return self.forward_non_autoregressive(X, training)
 
 
 
@@ -345,7 +345,7 @@ class LSTM(Network):
     #     loss.backward()
 
     #     if self.grad_clip_norm is not None or self.grad_clip_value is not None:
-    #         self.clipGradients()
+    #         self.clip_gradients()
 
     #     with torch.no_grad():
 
@@ -353,4 +353,4 @@ class LSTM(Network):
     #             self.update()
     #         else:
     #             self.t += 1
-    #             self.optimizerUpdate()
+    #             self.optimizer_update()

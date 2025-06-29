@@ -3,6 +3,7 @@ from src.network import Network
 import torch
 from src.encoder import Encoder
 from src.decoder import Decoder
+from utils.functions import softmax
 
 
 
@@ -20,18 +21,18 @@ class Transformer(Network):
         if not pretrained:
             architecture = kwargs.get("architecture")
             self.input_feature_count = kwargs.get("input_feature_count")
-            self.layers, self.encoders, self.decoders = self.buildLayers(architecture=architecture)
+            self.layers, self.encoders, self.decoders = self.build_layers(architecture=architecture)
 
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
         self.num_layers = len(self.layers)
 
         if training and self.optimizer:
-            self.setOptimizer()
+            self.set_optimizer()
 
 
 
-    def buildLayers(self, architecture):
+    def build_layers(self, architecture):
         
         num_heads = architecture.get("num_heads")
         ff_neuron_count = architecture.get("ff_neuron_count")
@@ -83,42 +84,42 @@ class Transformer(Network):
 
 
 
-    def forward(self, curr_input, training):
+    def forward(self, curr_input, training, **kwargs):
+        
         if self.type == "encoder":
-            return self.forwardEncoderOnly(curr_input)
+            return self.forward_encoder_only(curr_input)
+        
+        out_embedding = kwargs.get("target")
+        
         if self.type == "decoder":
-            return self.forwardDecoderOnly(curr_input)
-        return self.forwardEncoderDecoder(curr_input)
+            return self.forward_decoder_only(out_embedding)    
+            
+        return self.forward_encoder_decoder(curr_input, out_embedding)
 
         
 
-    def forwardEncoderDecoder(self, curr_input):
+    def forward_encoder_decoder(self, curr_input, out_embedding):
         
-        X_decoder = curr_input.detach().clone()
-
         for encoder in self.encoders:
-            print(curr_input.shape)
-            # import time
-            # time.sleep(5)
             curr_input = encoder.feed(curr_input)
             
         X_encoder = curr_input
-        curr_input = X_decoder
+        curr_input = out_embedding
             
         for decoder in self.decoders:
             curr_input = decoder.feed(curr_input, X_encoder)
             
         ZNorm3 = curr_input # store final decoder output 
         
-        out = decoder.linearFeed(ZNorm3) # pass final decoder output to linear block
+        logits = softmax(decoder.linear_feed(ZNorm3), dim=-1) # pass final decoder output to linear block and take softmax
         
-        return out
+        return logits
         
         
-    def forwardEncoderOnly(self, curr_input) -> None:
+    def forward_encoder_only(self, curr_input) -> None:
         pass
 
-    def forwardDecoderOnly(self, curr_input) -> None:
+    def forward_decoder_only(self, curr_input) -> None:
         pass
         
 

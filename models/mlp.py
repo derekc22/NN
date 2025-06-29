@@ -16,22 +16,22 @@ class MLP(Network):
         if not pretrained:
             architecture = kwargs.get("architecture")
             self.input_feature_count = kwargs.get("input_feature_count")
-            self.checkConfig(architecture=architecture)
-            self.layers = self.buildLayers(architecture=architecture) #or mlp_architecture.get("input_data_dim"))
+            self.check_config(architecture=architecture)
+            self.layers = self.build_layers(architecture=architecture) #or mlp_architecture.get("input_data_dim"))
         else:
-            self.layers = self.loadLayers(model_params=kwargs.get("model_params"))
+            self.layers = self.load_layers(model_params=kwargs.get("model_params"))
 
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
         self.num_layers = len(self.layers)
 
         if training and self.optimizer:
-            self.setOptimizer()
+            self.set_optimizer()
 
 
 
 
-    def loadLayers(self, model_params):
+    def load_layers(self, model_params):
         layers = [
             DenseLayer(
             pretrained=True, 
@@ -45,7 +45,7 @@ class MLP(Network):
         return layers
 
 
-    def buildLayers(self, architecture):
+    def build_layers(self, architecture):
 
         neuron_counts = architecture.get("neuron_counts")
         activation_fns = architecture.get("activation_fns")
@@ -66,7 +66,7 @@ class MLP(Network):
         return layers
 
 
-    def saveParameters(self):
+    def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
             layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
@@ -76,7 +76,7 @@ class MLP(Network):
 
 
 
-    def forward(self, curr_input, training):
+    def forward(self, curr_input, training, **kwargs):
         for layer in self.layers:
 
             curr_input = layer.feed(curr_input)
@@ -115,4 +115,4 @@ class MLP(Network):
     #             self.update()
     #         else:
     #             self.t += 1
-    #             self.optimizerUpdate()
+    #             self.optimizer_update()

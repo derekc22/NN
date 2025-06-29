@@ -27,7 +27,7 @@ class Network:
 
 
 
-    def collectParameters(self):
+    def collect_parameters(self):
         """
         Walk self.layers and return a flat list of all weight Tensors whose
         .grad you want to clip. Adapt these attribute names to match your layers.
@@ -46,12 +46,12 @@ class Network:
         return params
 
 
-    def clipGradients(self):
+    def clip_gradients(self):
         """
         Apply PyTorch's native clipping to the gradients in-place.
         Call immediately after loss.backward().
         """
-        params = self.collectParameters()
+        params = self.collect_parameters()
         # print(len(params))
 
         # grads = [p.grad for p in params if p.grad is not None]
@@ -71,7 +71,7 @@ class Network:
 
 
 
-    def setOptimizer(self):
+    def set_optimizer(self):
 
         # match self.optimizer:
 
@@ -112,25 +112,32 @@ class Network:
 
 
 
-    def train(self, data, target, epochs, save_params=True):
+    # def train(self, data, target, epochs, save_params=True):
+    def train(self, **kwargs):
+        
+        data, target, epochs, save_params = (
+            kwargs.get("data"),  kwargs.get("target"), 
+            kwargs.get('epochs'),  kwargs.get("save_params", True)
+        )
 
         epoch_plt = []
         loss_plt = []
         self.epochs = epochs
 
-        # epochs = (epochs or (data.size(dim=0/self.batch_size)))
+        if not self.batch_size: self.batch_size = data.shape[0]
 
-        for epoch in range(epochs): #range(1, int(epochs+1)):
+        for epoch in range(epochs):
+            
             self.epoch = epoch+1
             
             data_batch, target_batch = self.batch(data, target)
-            pred_batch = self.forward(data_batch, training=True)
+            pred_batch = self.forward(data_batch, training=True, kwargs=kwargs)
             # print(f"pred: {pred_batch.shape}")
 
             loss = getattr(self, self.loss_func)(pred_batch, target_batch)
 
             if self.lambda_L2:
-                loss += self.L2Regularization()
+                loss += self.l2_regularization()
             self.backprop(loss)
 
 
@@ -141,7 +148,7 @@ class Network:
             
 
         if save_params:
-            self.saveParameters()
+            self.save_parameters()
             
         return epoch_plt, loss_plt
 
@@ -152,7 +159,7 @@ class Network:
     def reduce(self, x):
         if self.reduction == "mean":
             return x.mean()
-        elif self.reduction == "sum":
+        if self.reduction == "sum":
             return x.sum()
 
 
@@ -262,7 +269,8 @@ class Network:
     def MSELoss(self, pred_batch, target_batch):
         
         errs = (pred_batch - target_batch)**2
-        mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) if self.batch_size else (1/pred_batch.shape[0])*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
+        # mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) if self.batch_size else (1/pred_batch.shape[0])*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
+        mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
         mse_loss_reduced = self.reduce(mse_loss)
 
         return mse_loss_reduced
@@ -343,7 +351,7 @@ class Network:
 
 
 
-    def optimizerUpdate(self):
+    def optimizer_update(self):
 
         optimizer_func = getattr(self, self.optimizer)
 
@@ -395,7 +403,7 @@ class Network:
 
 
 
-    def L2Regularization(self):
+    def l2_regularization(self):
 
         weight_sum = 0
 
@@ -422,7 +430,7 @@ class Network:
 
 
 
-    def checkConfig(self, architecture):
+    def check_config(self, architecture):
 
         config_lengths = [len(v) for k, v in architecture.items()]
         all_same_length = all(config_length == config_lengths[0] for config_length in config_lengths)
@@ -435,7 +443,7 @@ class Network:
 
 
 
-    def printLayers(self):
+    def print_layers(self):
         for layer in self.layers:
             print(layer)
 
@@ -487,7 +495,7 @@ class Network:
         loss.backward()
 
         if self.grad_clip_norm is not None or self.grad_clip_value is not None:
-            self.clipGradients()
+            self.clip_gradients()
 
         with torch.no_grad():
 
@@ -495,4 +503,4 @@ class Network:
                 self.update()
             else:
                 self.t += 1
-                self.optimizerUpdate()
+                self.optimizer_update()

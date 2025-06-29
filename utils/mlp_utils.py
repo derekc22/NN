@@ -4,7 +4,7 @@ import glob, os, re
 
 
 
-def fetchMLPParametersFromFile(device_type, directory):
+def fetch_mlp_params_from_file(device_type, directory):
 
     model_params = {}
 
@@ -36,7 +36,7 @@ def fetchMLPParametersFromFile(device_type, directory):
 
 
 
-def genMatrixStack(n, d=5):
+def gen_matrix_stack(n, d=5):
     num_a = n // 2
     num_b = n - num_a
 
@@ -62,11 +62,11 @@ def genMatrixStack(n, d=5):
 
 
 if __name__ == "__main__":
-    # genPetImageStack(15, 64, 64, False, False, 1)
+    # gen_pet_img_stack(15, 64, 64, False, False, 1)
 
-    # idk = fetchMLPParametersFromFile("cpu", "/params/paramsMLP")
-    # idk = fetchCNNParametersFromFile("cpu", "./params/paramsCNN")
+    # idk = fetch_mlp_params_from_file("cpu", "/params/paramsMLP")
+    # idk = fetch_cnn_params_from_file("cpu", "./params/paramsCNN")
 
-    idk1, idk2 = genMatrixStack(5, 2)
+    idk1, idk2 = gen_matrix_stack(5, 2)
     print(idk1)
     print(idk2)

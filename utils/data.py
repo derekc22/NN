@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error as rmse
 
 
 
-def printClassificationResults(dataset_size, prediction_batch, label_batch):
+def print_classification_results(dataset_size, prediction_batch, label_batch):
     num_correct = torch.sum(torch.abs(prediction_batch - label_batch) <= 0.5)
     print(f"number correct = {num_correct.item()}/{dataset_size}")
 
@@ -15,7 +15,7 @@ def printClassificationResults(dataset_size, prediction_batch, label_batch):
     print(f"percent correct = {percent_correct.item()}%")
 
 
-def plotRegressionCurves(ti, Yi, Xi):
+def plot_regression_curves(ti, Yi, Xi):
     fig, ax1 = plt.subplots(figsize=(8, 5))
     ax2 = ax1.twinx()
     ax1.plot(ti, Xi, label='ground truth', color='C0')
@@ -27,16 +27,16 @@ def plotRegressionCurves(ti, Yi, Xi):
     fig.legend()
       
 
-def plotRegressionResults(t, prediction_batch, label_batch, save_dir, show_results):
+def plot_regression_results(t, prediction_batch, label_batch, save_dir, show_results):
 
     for i, (ti, Yi, Xi) in enumerate(zip(t[:5], prediction_batch[:5], label_batch[:5])):
-        plotRegressionCurves(ti, Yi, Xi)  
+        plot_regression_curves(ti, Yi, Xi)  
         plt.savefig(f'{save_dir}/regression_{i}.pdf')
         plt.close()
 
     if show_results:
         for ti, Yi, Xi in zip(t, prediction_batch, label_batch):
-            plotRegressionCurves(ti, Yi, Xi)  
+            plot_regression_curves(ti, Yi, Xi)  
             plt.show(block=False)
             plt.pause(1.5)
             plt.close()
@@ -44,7 +44,7 @@ def plotRegressionResults(t, prediction_batch, label_batch, save_dir, show_resul
 
 
 
-def plotTrainingResults(epoch_plt, loss_plt, save_dir):
+def plot_training_results(epoch_plt, loss_plt, save_dir):
 
     epoch_plt = torch.tensor(epoch_plt)
     loss_plt = torch.tensor(loss_plt)

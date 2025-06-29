@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 
-def genSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_noise=False):
+def gen_sine_wave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_noise=False):
     t = torch.sort(torch.rand(batch_size, time_steps, 1) * T, dim=1).values if vary_dt else torch.linspace(0, T, time_steps).unsqueeze(0).unsqueeze(-1).repeat(batch_size, 1, 1)
     arg = freq*(t)
     if vary_phase:
@@ -20,7 +20,7 @@ def genSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_n
         X += torch.from_numpy(np.random.normal(0, 0.01, t.shape)).float()
     return t, X
 
-def genDecayingSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_noise=False):
+def gen_decaying_sine_wave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phase, add_noise=False):
     t = torch.sort(torch.rand(batch_size, time_steps, 1) * T, dim=1).values if vary_dt else torch.linspace(0, T, time_steps).unsqueeze(0).unsqueeze(-1).repeat(batch_size, 1, 1)
     arg = 2*np.pi*(t)
     if vary_phase:
@@ -33,7 +33,7 @@ def genDecayingSineWave(time_steps, freq, amp, T, batch_size, vary_dt, vary_phas
 
 
 
-def fetchRNNParametersFromFile(device_type, directory):
+def fetch_rnn_params_from_file(device_type, directory):
 
     model_params = {}
 
@@ -171,7 +171,7 @@ def decode_vector(predicted_vector, embedding_dim, top_k=1):
     return [index_to_word[i] for i in top_indices]
 
 
-def encodeSentence(sentence: str, embedding_dim):
+def encode_sentence(sentence: str, embedding_dim):
     print("encoding sentence...")
     sentence_cleaned = sentence.rstrip('\n')
     words = sentence_cleaned.split() # Split by whitespace
@@ -179,23 +179,23 @@ def encodeSentence(sentence: str, embedding_dim):
     encoded = [encode_word(word, embedding_dim) for word in words]
     return torch.stack(encoded)
 
-def encodeParagraph(paragraph: list, embedding_dim):
+def encode_paragraph(paragraph: list, embedding_dim):
     print("encoding paragraph...")
-    encoded = [encodeSentence(sentence, embedding_dim) for sentence in paragraph]
+    encoded = [encode_sentence(sentence, embedding_dim) for sentence in paragraph]
     return torch.stack(encoded)
 
-def decodeSentence(sentence_embedding, embedding_dim):
+def decode_sentence(sentence_embedding, embedding_dim):
     print("decoding sentence...")
     decoded = ' '.join([decode_vector(word_embedding, embedding_dim)[0] for word_embedding in sentence_embedding])
     return decoded
 
-def decodeParagraph(paragraph_embedding, embedding_dim):
+def decode_paragraph(paragraph_embedding, embedding_dim):
     print("decoding paragraph...")
-    decoded = '\n'.join([decodeSentence(sentence_embedding, embedding_dim) for sentence_embedding in paragraph_embedding])
+    decoded = '\n'.join([decode_sentence(sentence_embedding, embedding_dim) for sentence_embedding in paragraph_embedding])
     return decoded
 
 
-def genTextTrainingData(readlines_arr: list, embed_dim):
+def gen_text_training_data(readlines_arr: list, embed_dim):
 
     lengthBools = [len(readlines_arr[0].rstrip('\n').split()) == len(line.rstrip('\n').split()) for line in readlines_arr]
     allSameLength = all(lengthBools)
@@ -203,7 +203,7 @@ def genTextTrainingData(readlines_arr: list, embed_dim):
         print(lengthBools)
         raise ValueError(f"sentence #{lengthBools.index(False)} differs in length from sentence #0")
 
-    data_batch = encodeParagraph(readlines_arr, embed_dim)
+    data_batch = encode_paragraph(readlines_arr, embed_dim)
     batch_size = data_batch.shape[0]
     label_batch = data_batch[:, 1:, :].clone()
     end_line_tensor = torch.load("data/text/embeddings/end_line.pth").unsqueeze(0).repeat(batch_size, 1).unsqueeze(1)
@@ -216,7 +216,7 @@ def genTextTrainingData(readlines_arr: list, embed_dim):
 
 
 if __name__ == "__main__":
-#   model_params = fetchRNNParametersFromFile("cpu", "params/paramsRNN")
+#   model_params = fetch_rnn_params_from_file("cpu", "params/paramsRNN")
 #   print(model_params)
 
 
@@ -238,9 +238,9 @@ if __name__ == "__main__":
     # print(sentence)
 
     # # sentence = "hello my name is derek"
-    # embed_sentence = encodeSentence(sentence, embed_dim)
+    # embed_sentence = encode_sentence(sentence, embed_dim)
     # print(embed_sentence)
-    # unembed_sentence = decodeSentence(embed_sentence, embed_dim)
+    # unembed_sentence = decode_sentence(embed_sentence, embed_dim)
     # print(unembed_sentence)
 
 
@@ -251,27 +251,27 @@ if __name__ == "__main__":
     # paragraph = txt
     # print(paragraph)
 
-    # embed_paragraph = encodeParagraph(paragraph, embed_dim)
+    # embed_paragraph = encode_paragraph(paragraph, embed_dim)
     # print(embed_paragraph.shape)
 
     # embed_paragraph = torch.load("data/text/embeddings/data_batch.pth")[:5]
-    # unembed_paragraph = decodeParagraph(embed_paragraph, embed_dim)
+    # unembed_paragraph = decode_paragraph(embed_paragraph, embed_dim)
     # print(unembed_paragraph)
 
 
-    # genTextTrainingData(paragraph, embed_dim)
+    # gen_text_training_data(paragraph, embed_dim)
 
 
 
-    t, X = genSineWave(500, 10, 1, 2*np.pi, 10, vary_dt=True, vary_phase=True, add_noise=True)
+    t, X = gen_sine_wave(500, 10, 1, 2*np.pi, 10, vary_dt=True, vary_phase=True, add_noise=True)
     for ti, Xi in zip(t, X):
         plt.plot(ti[:, 0], Xi[:, 0])
         plt.grid(True)
         plt.show()
 
 
-    # t1, X1 = genSineWave(100, 1, 1, 2*np.pi, 10, phase=np.pi, add_noise=False)
-    # t2, X2 = genSineWave(100, 1, 1, 2*np.pi, 10, phase=0,     add_noise=False)
+    # t1, X1 = gen_sine_wave(100, 1, 1, 2*np.pi, 10, phase=np.pi, add_noise=False)
+    # t2, X2 = gen_sine_wave(100, 1, 1, 2*np.pi, 10, phase=0,     add_noise=False)
     # print(X2.shape)
     # plt.scatter(t1, X1)
     # plt.scatter(t2, X2)
