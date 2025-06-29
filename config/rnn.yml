@@ -1,8 +1,8 @@
 architecture:
-  hidden_activation_function: sigmoid
+  hidden_activation_fn: sigmoid
   hidden_state_neuron_counts:
   - 64
-  output_activation_function: none
+  output_activation_fn: none
   output_feature_count: 1
 hyperparameters:
   batch_size: 3
@@ -14,7 +14,7 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-23_21:32:29_rnn
+log_id: logs/2025-06-28_21:21:15_rnn
 parameters_fpath: ./params/rnn/vanilla
 specs:
   autoregressive: false

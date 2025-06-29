@@ -1,6 +1,6 @@
 architecture:
   cnn_architecture:
-    activation_functions:
+    activation_fns:
     - leakyReLU
     - none
     - leakyReLU
@@ -30,7 +30,7 @@ architecture:
     - convolutional
     - max_pool
   mlp_architecture:
-    activation_functions:
+    activation_fns:
     - sigmoid
     neuron_counts:
     - 1
@@ -48,7 +48,7 @@ hyperparameters:
     lambda_L2: 0.001
     learn_rate: 0.01
     optimizer: adam
-log_id: logs/2025-06-23_21:29:04_cnn
+log_id: logs/2025-06-28_21:22:11_cnn
 parameters:
   cnn_parameters_fpath: ./params/cnn/pets
   mlp_parameters_fpath: ./params/cnn/pets/cnn_mlp

@@ -10,10 +10,10 @@ class LSTMCell():
 
         self.index = int(kwargs.get("index"))
         self.device_type = device_type
-        self.gate_nonlinearity = kwargs.get("gate_activation_function")
-        self.why_nonlinearity = kwargs.get("output_activation_function")
+        self.gate_nonlinearity = kwargs.get("gate_nonlinearity")
+        self.why_nonlinearity = kwargs.get("output_nonlinearity")
         self.type = kwargs.get("type")
-        self.stateful = kwargs.get("stateful")
+        # self.stateful = kwargs.get("stateful")
         
         if not pretrained:
 

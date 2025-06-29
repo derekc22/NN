@@ -25,10 +25,10 @@ def sigmoid(k):
     return 1/(1 + torch.exp(-k))
 
 
-def softmax(k):
-    k = k - torch.max(k)  # Subtract the max value from the logits to avoid overflow
+def softmax(k, dim):
+    k = k - torch.max(k, dim=dim, keepdim=True).values  # Subtract the max value from the logits to avoid overflow
     exp_k = torch.exp(k)
-    return exp_k / torch.sum(exp_k)
+    return exp_k / torch.sum(exp_k, dim=dim, keepdim=True)
 
 
 def none(k):

@@ -120,78 +120,78 @@ class Decoder:
 
 
 
-    def computeQKV(self, X):
-        # b = batch_dim
-        # s = seq_len
-        # e = embedding_dim
-        # h = num_heads
-        # k = dk
-        Q = torch.einsum("bse,hek->bhsk", X, self.WQ_masked)
-        K = torch.einsum("bse,hek->bhsk", X, self.WK_masked)
-        V = torch.einsum("bse,hek->bhsk", X, self.WV_masked)
+    def computeQKV(self, X, WQ, WK, WV):
+        Q = X @ WQ
+        K = X @ WK
+        V = X @ WV
         return Q, K, V
     
-    def computeQKV2(self, X, X_encoder):
-        # b = batch_dim
-        # s = seq_len
-        # e = embedding_dim
-        # h = num_heads
-        # k = dk
-        Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
-        K = torch.einsum("bse,hek->bhsk", X_encoder, self.WK)
-        V = torch.einsum("bse,hek->bhsk", X_encoder, self.WV)
+    def computeQKV2(self, X, X_encoder, WQ, WK, WV):
+        Q = X @ WQ
+        K = X_encoder @ WK
+        V = X_encoder @ WV
         return Q, K, V
     
     
     def maskedAttention(self, Q, K, V):
-        batch_size = Q.shape[0]
-        seq_len = Q.shape[2]
-        M = torch.tril(torch.full((batch_size, self.h, seq_len, seq_len), -torch.inf))
-        KT = K.transpose(-1, -2)
-        return softmax( (Q @ KT + M) / self.dk**0.5, dim=-1 ) @ V
+        seq_len = Q.shape[1]
+        M = torch.tril(torch.full((seq_len, seq_len), -torch.inf))
+        return softmax( (Q @ K.mT + M) / self.dk**0.5, dim=-1 ) @ V
     
     def attention2(self, Q, K, V):
-        KT = K.transpose(-1, -2)
-        return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
+        return softmax( (Q @ K.mT) / self.dk**0.5, dim=-1 ) @ V
 
-    def computeMaskedHeads(self, X):
-        # X : (batch, seq_len, d_model)
 
-        Q, K, V = self.computeQKV(X)
+    def computeMaskedHead(self, X):
+        # X is ( batch x n/sequenceLength/numTokens x d_model )
 
-        H_ = self.maskedAttention(Q, K, V)        # (batch, h, seq_len, dk)
-
-        # reorder to (batch, seq_len, h, dk) then flatten heads
-        H__ = H_.permute(0, 2, 1, 3)    # (batch, seq_len, h, dk)
-        batch_size, seq_len = X.shape[:2]
-        H = H__.reshape(batch_size, seq_len, self.d_model)   # (batch, seq_len, d_model)
+        Q, K, V = torch.vmap(
+            self.computeQKV, 
+            in_dims=(None, 0, 0, 0)
+            )(X, self.WQ_masked, self.WK_masked, self.WV_masked)
         
+        H_ = self.maskedAttention(Q, K, V)
+        # H = H_.reshape(-1, self.h * self.dk)
+        seq_len = X.shape[0]
+        H = H_.permute(1, 0, 2).reshape(seq_len, self.h * self.dk)
+
         return H
-    
-    def computeHeads2(self, X, X_encoder):
-        # X : (batch, seq_len, d_model)
 
-        Q, K, V = self.computeQKV2(X, X_encoder)
+    def computeHead2(self, X, X_encoder):
+        # X is ( batch x n/sequenceLength/numTokens x d_model )
 
-        H_ = self.attention2(Q, K, V)        # (batch, h, seq_len, dk)
-
-        # reorder to (batch, seq_len, h, dk) then flatten heads
-        H__ = H_.permute(0, 2, 1, 3)    # (batch, seq_len, h, dk)
-        batch_size, seq_len = X.shape[:2]
-        H = H__.reshape(batch_size, seq_len, self.d_model)   # (batch, seq_len, d_model)
+        Q, K, V = torch.vmap(
+            self.computeQKV2, 
+            in_dims=(None, None, 0, 0, 0)
+            )(X, X_encoder, self.WQ, self.WK, self.WV)
         
+        H_ = self.attention2(Q, K, V)
+        # H = H_.reshape(-1, self.h * self.dk)
+        seq_len = X.shape[0]
+        H = H_.permute(1, 0, 2).reshape(seq_len, self.h * self.dk)
+
         return H
-    
+
     
     def maskedMultiHeadedAttention(self, X):
-        # X : (batch, seq_len, d_model)
-        H = self.computeMaskedHeads(X)      # (batch, seq_len, d_model)
-        return H @ self.WO_masked                     # (batch, seq_len, d_model)
-    
+        H = torch.vmap(
+            self.computeMaskedHead,
+            in_dims=(0)
+            )(X)
+
+        MMH_A = H @ self.WO_masked
+
+        return MMH_A
+
     def multiHeadedAttention2(self, X, X_encoder):
-        # X : (batch, seq_len, d_model)
-        H = self.computeHeads2(X, X_encoder)      # (batch, seq_len, d_model)
-        return H @ self.WO                        # (batch, seq_len, d_model)
+        H = torch.vmap(
+            self.computeHead2,
+            in_dims=(0, 0)
+            )(X, X_encoder)
+
+        MH_A = H @ self.WO
+
+        return MH_A
 
 
     def addNorm(self, X, Y, ln):
@@ -228,6 +228,8 @@ class Decoder:
         
         ZNorm3 = self.addNorm(ZNorm2, ZFF, self.ln_3)
         
+        # print(ZNorm3)
+        
         return ZNorm3
 
         
@@ -242,7 +244,7 @@ if __name__ == "__main__":
     xe = torch.rand(size=(batch_size_, sequence_len, embedding_size))
     xd = torch.rand(size=(batch_size_, sequence_len, embedding_size))
 
-    from encoder import Encoder
+    from src.encoder import Encoder
     encoder = Encoder(
         pretrained=False, 
         device_type="cpu", 
@@ -261,8 +263,8 @@ if __name__ == "__main__":
     )
     
     out = encoder.feed(xe)
-    print(out)
-    exit()    
+    print(out)    
+    exit()
 
     decoder.feed(xd, out)
     

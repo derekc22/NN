@@ -1,7 +1,7 @@
 import torch
 from src.network import Network
 from src.rnn_cell import RNNCell
-from src.functions import activate
+from utils.functions import activate
 import os
 
 
@@ -16,7 +16,7 @@ class RNN(Network):
         self.save_fpath = kwargs.get("save_fpath")
         
         if self.stateful:
-            self.stateful_initialized = False
+            self.state_initialized = False
         self.autoregressive = kwargs.get("autoregressive", False)
         self.teacher_forcing = kwargs.get("teacher_forcing", 0) # If no teacher_forcing factor is set (ie like at inference), the model should be 100% auto-regressive
 
@@ -45,43 +45,43 @@ class RNN(Network):
         
         layers = [ 
             
-        RNNCell( 
+            RNNCell( 
             pretrained=True, 
             device_type=self.device_type,
             type="hidden",
             pretrained_wxh=wxh,
             pretrained_whh=whh,
             pretrained_bh=bh,
-            hidden_activation_function=hidden_activation,
-            index=index ) for (wxh, whh, bh, hidden_activation, index) in list(model_params.values())[:-1] ] + [ 
+            hidden_nonlinearity=hidden_activation_fn,
+            index=index ) for (wxh, whh, bh, hidden_activation_fn, index) in list(model_params.values())[:-1] ] + [ 
                 
-        RNNCell(
+            RNNCell(
             pretrained=True, 
             device_type=self.device_type,
             type="output",
             pretrained_wxh=wxh,
             pretrained_whh=whh,
             pretrained_bh=bh,
-            hidden_activation_function=hidden_activation,
+            hidden_nonlinearity=hidden_activation_fn,
             pretrained_why=why,
             pretrained_by=by,
-            output_activation_function=output_activation,
-            index=index ) for (wxh, whh, bh, hidden_activation, why, by, output_activation, index) in [list(model_params.values())[-1]] ]
-        
+            output_nonlinearity=output_activation,
+            index=index ) for (wxh, whh, bh, hidden_activation_fn, why, by, output_activation, index) in [list(model_params.values())[-1]] ]
+    
         return layers
 
 
 
     def buildLayers(self, architecture):
         hidden_state_neuron_counts = architecture.get("hidden_state_neuron_counts")
-        hidden_activation_function = architecture.get("hidden_activation_function")
-        output_activation_function = architecture.get("output_activation_function")
+        hidden_activation_fn = architecture.get("hidden_activation_fn")
+        output_activation_fn = architecture.get("output_activation_fn")
         output_feature_count = architecture.get("output_feature_count")
         num_layers = len(hidden_state_neuron_counts)
 
         layers = [ 
-        
-        RNNCell( 
+            
+            RNNCell( 
             pretrained=False, 
             device_type=self.device_type,
             type="hidden",
@@ -89,10 +89,10 @@ class RNN(Network):
             wxh_neuron_count=hidden_state_neuron_counts[i],
             whh_input_count=hidden_state_neuron_counts[i],
             whh_neuron_count=hidden_state_neuron_counts[i],
-            hidden_activation_function=hidden_activation_function,
+            hidden_nonlinearity=hidden_activation_fn,
             index=i+1 ) for i in range(num_layers-1) ] + [ 
-                
-        RNNCell(
+                    
+            RNNCell(
             pretrained=False, 
             device_type=self.device_type,
             type="output",
@@ -100,11 +100,12 @@ class RNN(Network):
             wxh_neuron_count=hidden_state_neuron_counts[-1],
             whh_input_count=hidden_state_neuron_counts[-1],
             whh_neuron_count=hidden_state_neuron_counts[-1],
-            hidden_activation_function=hidden_activation_function,
+            hidden_nonlinearity=hidden_activation_fn,
             why_input_count=hidden_state_neuron_counts[-1],
             why_neuron_count=output_feature_count,
-            output_activation_function=output_activation_function,
-            index=num_layers ) ]
+            output_nonlinearity=output_activation_fn,
+            index=num_layers ) 
+        ]
         
         return layers
     
@@ -141,10 +142,10 @@ class RNN(Network):
         T = X.shape[1] 
         batch_size = X.shape[0]
 
-        if self.stateful and not self.stateful_initialized: 
+        if self.stateful and not self.state_initialized: 
             for layer in self.layers: 
                 layer.generateState(batch_size)
-            self.stateful_initialized = True
+            self.state_initialized = True
 
         ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.resetHiddenState(batch_size)
         whh_l = [layer.whh for layer in self.layers]
@@ -191,10 +192,10 @@ class RNN(Network):
         T = X.shape[1] 
         batch_size = X.shape[0]
 
-        if self.stateful and not self.stateful_initialized: 
+        if self.stateful and not self.state_initialized: 
             for layer in self.layers: 
                 layer.generateState(batch_size)
-            self.stateful_initialized = True
+            self.state_initialized = True
 
         ht1_l = [layer.ht1 for layer in self.layers] if self.stateful else self.resetHiddenState(batch_size)
         whh_l = [layer.whh for layer in self.layers]
@@ -266,18 +267,18 @@ class RNN(Network):
 
 
 
-    def backprop(self, loss):
-        self.zerograd()
+    # def backprop(self, loss):
+    #     self.zerograd()
 
-        loss.backward()
+    #     loss.backward()
 
-        if self.grad_clip_norm is not None or self.grad_clip_value is not None:
-            self.clipGradients()
+    #     if self.grad_clip_norm is not None or self.grad_clip_value is not None:
+    #         self.clipGradients()
 
-        with torch.no_grad():
+    #     with torch.no_grad():
 
-            if not self.optimizer:
-                self.update()
-            else:
-                self.t += 1
-                self.optimizerUpdate()
+    #         if not self.optimizer:
+    #             self.update()
+    #         else:
+    #             self.t += 1
+    #             self.optimizerUpdate()

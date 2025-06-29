@@ -101,7 +101,7 @@ lstm (05/27/2025)
    - fixed really dumb rnn bug whereby the state was being reset after each epoch, even if self.stateful=True
    -- this was caused by me placing the call to self.generateState() INSIDE the 'forward()' call instead of outside of it
    -- thus, the state attribute (self.ht1) would be re-initialized back to zeros after each epoch instead of being carried over to the next epoch
-   -- this was fixed by adding a flag called 'self.stateful_initialized' that is set to True after the first call to self.generateState() (which is guarded by an if statement: 'if self.stateful and not self.stateful_initialized:' )
+   -- this was fixed by adding a flag called 'self.state_initialized' that is set to True after the first call to self.generateState() (which is guarded by an if statement: 'if self.stateful and not self.state_initialized:' )
 
    - moved self.epochs and self.epoch from src/network.py under the 'if training:' block of the Network constructor (it was previously outside of the 'if training:' block)
    -- this required refactoring the teacher forcing factor logic in src/rnn.py to be inside an 'if training:' block as well
@@ -113,12 +113,20 @@ lstm (05/27/2025)
    -- found ways to get both lstm and rnn to work in autoregressive mode. however, doing so requires a significant number of epochs and samples (10000+ epochs and 10000+ samples) 
    -- even still, the phase of the sine wave is not learned properly
    -- regardless, something works at least. this is a good start, but there is still work to be done to make both models more robust 
-   -- another next step is to try to implement a text_lstm model and re-test the old text_rnn model with this new knowledge that more epochs + more data leads to better results
+   -- another next step is to try to implement a text_lstm model and re-test the old text_rnn model with this new knowledge that more epochs + more data leads to better results (duh)
 
    - added /backup directory to store training logs/runs that show good results
 
 transformer (06/21/2025)
    - refactored layer.py to 'functions.py' and swapped out the Layer class for a collection of pure functions
-   - fixed nasty batchnorm issue where bn2 in convolutional.py and bn1 in dense.py would be instantiated WITHIN traverse() and forward() methods, respectively, causing the internal state of the batchnorm layers to be reset every time a forward pass was made
+   
+   - fixed dumb batchnorm issue where bn2 in convolutional.py and bn1 in dense.py would be instantiated WITHIN traverse() and forward() methods, respectively, causing the internal state of the batchnorm layers to be reset every time a forward pass was made
    -- this is obviously dumb as it causes the internal state/statistics of the batchnorm layers to be reset every time, defeating the purpose/benefit of batch normalization
    -- this was fixed by moving the instantiation of the batchnorm object to their respective __init__() methods
+
+
+transformer (???/2025)
+   - added override decorator to cnn backprop() method and copied generic version of backprop() method to network.py
+   -- this way, there's less copied code and the backprop() method can be overridden in any model that needs to make specific implementation changes
+   -- for example, mlp, rnn, lstm all use the generic backprop() functionality while cnn() has its own specific implementation
+   -- thus, mlp, rnn, and lstm can simply inherit from Network version while cnn can override it
