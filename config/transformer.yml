@@ -1,7 +1,7 @@
 architecture:
   depth: 2
   ff_activation_fn: leakyReLU
-  ff_neuron_count: 64
+  ff_neuron_count: 2
   num_heads: 4
   vocab_size: 6
 hyperparameters:
@@ -9,10 +9,10 @@ hyperparameters:
   dropout_rate: null
   lambda_L2: 0.001
   learn_rate: 0.01
-  loss_func: MSELoss
+  loss_func: BCELoss
   optimizer: null
   reduction: mean
-log_id: logs/2025-06-28_21:37:20_transformer
+log_id: logs/2025-06-29_00:40:00_transformer
 parameters_fpath: ./params/transformer
 specs:
   device_type: cpu
@@ -22,6 +22,6 @@ test:
   show_results: false
   test_dataset_size: 100
 train:
-  epochs: 500
+  epochs: 5
   show_loss_plot: true
   train_dataset_size: 10

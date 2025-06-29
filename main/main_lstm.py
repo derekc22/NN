@@ -48,7 +48,7 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
+            model_params=fetch_lstm_params_from_file(device_type, parameters_fpath),
             stateful=stateful,
             autoregressive=autoregressive,
             save_fpath=parameters_fpath,
@@ -67,16 +67,21 @@ if mode == "train":
             save_fpath=parameters_fpath,
         )
         
-    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    t, X = gen_sine_wave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = gen_decaying_sine_wave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = t
     label_batch = X
     plt.plot(data_batch[0].squeeze(), label_batch[0].squeeze())
     plt.show()
 
-    (epoch_plt, loss_plt) = lstm.train(data_batch, label_batch, epochs, save_params=True)
+    epoch_plt, loss_plt = lstm.train(
+        data=data_batch, 
+        target=label_batch, 
+        epochs=epochs, 
+        save_params=True
+    )
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt, log_id)
+        plot_training_results(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 
@@ -85,8 +90,8 @@ else:
     test_dataset_size = test_config["test_dataset_size"]
     show_results = test_config["show_results"]
 
-    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    t, X = gen_sine_wave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = gen_decaying_sine_wave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = t
     label_batch = X
 
@@ -94,13 +99,13 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetchLSTMParametersFromFile(device_type, parameters_fpath),
+        model_params=fetch_lstm_params_from_file(device_type, parameters_fpath),
         stateful=stateful,
         autoregressive=autoregressive,
     )
 
     prediction_batch = lstm.inference(data_batch)#.detach()
-    plotRegressionResults(t, prediction_batch, label_batch, log_id, show_results)
+    plot_regression_results(t, prediction_batch, label_batch, log_id, show_results)
 
 
 

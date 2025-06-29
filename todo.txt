@@ -8,15 +8,15 @@
 05/22/2025
     - test rnn_text.py in autoregressive mode
     - integrate and test gradient clipping in other models' backward() methods
-    - register/wrap weights/biases in torch.nn.Parameter() so that Network.collectParameters() can be replaced with a call to torch.nn.Module.parameters() when attempting to clip gradients
+    - register/wrap weights/biases in torch.nn.Parameter() so that Network.collect_parameters() can be replaced with a call to torch.nn.Module.parameters() when attempting to clip gradients
 
 05/25/2025
     - (DONE: 05/25/2025) change 'self.is_conv_layer' in the cnn class to self.type == 'conv' or 'pool' to match the conventions of other architectures
-    - double check error checking fetchRNNParametersFromFile() in utils/rnn_utils.py
+    - double check error checking fetch_rnn_params_from_file() in utils/rnn_utils.py
 
 05/26/2025
     - save model weights as pkl instead of pth
-    - (DONE: 05/26/2025) investigate solutions such that self.generateState() can be called with the batch size as an argument
+    - (DONE: 05/26/2025) investigate solutions such that self.generate_state() can be called with the batch size as an argument
 
 05/27/2025
     - implement and test a lstm_text.py model

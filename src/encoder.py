@@ -77,7 +77,7 @@ class Encoder:
 
 
 
-    def computeQKV(self, X):
+    def compute_QKV(self, X):
         # b = batch_dim
         # s = seq_len
         # e = embedding_dim
@@ -100,10 +100,10 @@ class Encoder:
         KT = K.transpose(-1, -2)
         return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
 
-    def computeHeads(self, X):
+    def compute_heads(self, X):
         # X : (batch, seq_len, d_model)
 
-        Q, K, V = self.computeQKV(X)
+        Q, K, V = self.compute_QKV(X)
     
         H_ = self.attention(Q, K, V)        # (batch, h, seq_len, dk)
 
@@ -115,20 +115,20 @@ class Encoder:
         return H
 
 
-    def multiHeadedAttention(self, X):
+    def multiheaded_attention(self, X):
         # X : (batch, seq_len, d_model)
-        H = self.computeHeads(X)                   # (batch, seq_len, d_model)
+        H = self.compute_heads(X)                   # (batch, seq_len, d_model)
         return H @ self.WO                        # (batch, seq_len, d_model)
 
 
 
-    def addNorm(self, X, Y, ln):
+    def add_norm(self, X, Y, ln):
         Z = X + Y
         ZNorm = ln(Z)
         return ZNorm
 
 
-    def feedForward(self, curr_input):
+    def feed_forward(self, curr_input):
         for layer in self.ffLayers:
             curr_input = layer.feed(curr_input)
         return curr_input
@@ -136,16 +136,16 @@ class Encoder:
 
 
     def feed(self, X):
-        MH_A = self.multiHeadedAttention(X)
+        MH_A = self.multiheaded_attention(X)
         
-        ZNorm1 = self.addNorm(X, MH_A, self.ln_1)
+        ZNorm1 = self.add_norm(X, MH_A, self.ln_1)
 
         batch_size, seq_len = X.shape[:2]
-        ZFF = self.feedForward(
+        ZFF = self.feed_forward(
             ZNorm1.reshape(-1, self.d_model)
             ).reshape(batch_size, seq_len, self.d_model)
         
-        ZNorm2 = self.addNorm(ZNorm1, ZFF, self.ln_2)
+        ZNorm2 = self.add_norm(ZNorm1, ZFF, self.ln_2)
         # print(ZNorm2.shape)
         # print(ZNorm2)
         # exit()

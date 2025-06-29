@@ -14,7 +14,7 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-23_21:31:52_lstm
+log_id: logs/2025-06-29_08:21:34_lstm
 parameters_fpath: ./params/lstm/vanilla
 specs:
   autoregressive: false

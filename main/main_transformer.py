@@ -32,8 +32,9 @@ if mode == "train":
     show_plot = train_config["show_loss_plot"]
     hyperparameters = config["hyperparameters"]
     
-    data_batch = torch.rand(size=(5, 10, input_feature_count))
-    label_batch = torch.rand(size=(5, 10, architecture["vocab_size"]))
+    input_embedding = torch.rand(size=(5, 10, input_feature_count))
+    output_embedding = torch.rand(size=(5, 10, architecture["vocab_size"]))
+    
     # print(data_batch.shape)
     # exit()
     # print(label_batch.shape)
@@ -45,7 +46,7 @@ if mode == "train":
         #     training=True,
         #     device_type=device_type,
         #     hyperparameters=hyperparameters,
-        #     model_params=fetchMLPParametersFromFile(device_type, parameters_fpath),
+        #     model_params=fetch_mlp_params_from_file(device_type, parameters_fpath),
         #     save_fpath=parameters_fpath,
         # )
     else:
@@ -60,9 +61,15 @@ if mode == "train":
         )
 
 
-    epoch_plt, loss_plt = transformer.train(data_batch, label_batch, epochs, save_params=True)
+    epoch_plt, loss_plt = transformer.train(
+        data=input_embedding, 
+        target=output_embedding, 
+        epochs=epochs, 
+        save_params=True
+    )
+    
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt, log_id)
+        plot_training_results(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 # else:
@@ -70,15 +77,15 @@ if mode == "train":
 #     test_dataset_size = test_config["test_dataset_size"]
 #     show_images = test_config["show_results"]
 
-#     data_batch, label_batch = genMatrixStack(test_dataset_size, int(input_feature_count**(1/2)))
+#     data_batch, label_batch = gen_matrix_stack(test_dataset_size, int(input_feature_count**(1/2)))
 
 #     mlp = MLP(
 #         pretrained=True,
 #         training=False,
 #         device_type=device_type,
-#         model_params=fetchMLPParametersFromFile(device_type, parameters_fpath),
+#         model_params=fetch_mlp_params_from_file(device_type, parameters_fpath),
 #     )
 
 #     prediction_batch = mlp.inference(data_batch)
-#     printClassificationResults(test_dataset_size, prediction_batch, label_batch)
+#     print_classification_results(test_dataset_size, prediction_batch, label_batch)
 

@@ -2,8 +2,8 @@ import os
 from src.network import Network
 from models.mlp import MLP
 from src.cnn_layer import CNNLayer
-import torch
 from typing_extensions import override
+import torch
 
 
 class CNN(Network):
@@ -18,13 +18,13 @@ class CNN(Network):
 
         if not pretrained:
             architecture = kwargs.get("cnn_architecture")
-            self.checkConfig(architecture=architecture)
-            self.layers = self.buildLayers(architecture=architecture)
+            self.check_config(architecture=architecture)
+            self.layers = self.build_layers(architecture=architecture)
 
-            mlp_input_feature_count = self.calcMLPInputSize(kwargs.get("input_data_dim"))
+            mlp_input_feature_count = self.calc_mlp_input_shape(kwargs.get("input_data_dim"))
             self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=mlp_input_feature_count, architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
         else:
-            self.layers = self.loadLayers(kwargs.get("cnn_model_params"))
+            self.layers = self.load_layers(kwargs.get("cnn_model_params"))
             self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
 
         if not (self.layers and self.MLP.layers):
@@ -32,12 +32,12 @@ class CNN(Network):
         self.num_layers = len(self.layers)
 
         if training and self.optimizer:
-            self.setOptimizer()
+            self.set_optimizer()
 
 
 
 
-    def loadLayers(self, model_params):
+    def load_layers(self, model_params):
 
         layers = [CNNLayer(
             pretrained=True, 
@@ -53,7 +53,7 @@ class CNN(Network):
         return layers
 
 
-    def buildLayers(self, architecture):
+    def build_layers(self, architecture):
         layer_types = architecture.get("type")
         filter_counts = architecture.get("filter_counts")
         kernel_shapes = architecture.get("kernel_shapes")
@@ -77,20 +77,20 @@ class CNN(Network):
 
 
 
-    def saveParameters(self):
+    def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
             layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             torch.save(layer.kernels, f"{self.save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
             torch.save(layer.biases, f"{self.save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
 
-        self.MLP.saveParameters()
+        self.MLP.save_parameters()
 
 
 
-    def calcMLPInputSize(self, input_data_dim):
+    def calc_mlp_input_shape(self, input_data_dim):
 
-        print("calculating MLP input size.......")
+        print("calculating MLP input shape.......")
 
         input_data_dim = (1, ) + input_data_dim
 
@@ -104,7 +104,7 @@ class CNN(Network):
 
 
 
-    def forward(self, curr_input, training, dummy=False):  # maybe recursion would work for this?
+    def forward(self, curr_input, training, dummy=False, **kwargs): 
 
         for layer in self.layers:
             if layer.type == "convolutional":
@@ -112,13 +112,12 @@ class CNN(Network):
                 curr_input = layer.convolve(curr_input)
 
                 # if self.dropout_rate:
-                #     curr_input = self.spatialDropout(curr_input)
+                #     curr_input = self.spatial_dropout(curr_input)
 
                 # if training and not dummy and self.dropout_rate: #layer != self.layers[-1]:
                 #     curr_input = layer.convolve(curr_input, dropout_rate=self.dropout_rate)
                 # else:
                 #     curr_input = layer.convolve(curr_input)
-
 
             else:
                 curr_input = layer.maxpool(curr_input)
@@ -138,7 +137,7 @@ class CNN(Network):
 
 
 
-    # def spatialDropout(self, curr_input):
+    # def spatial_dropout(self, curr_input):
 
     #   drop_count = int(self.dropout_rate * curr_input.size(dim=1))
 
@@ -172,11 +171,11 @@ class CNN(Network):
                 self.update()
             else:
                 self.t += 1
-                self.optimizerUpdate()
+                self.optimizer_update()
 
 
             if not self.MLP.optimizer:
                 self.MLP.update()
             else:
                 self.MLP.t += 1
-                self.MLP.optimizerUpdate()
+                self.MLP.optimizer_update()

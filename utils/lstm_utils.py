@@ -6,7 +6,7 @@ import numpy as np
 
 
 
-def fetchLSTMParametersFromFile(device_type, directory):
+def fetch_lstm_params_from_file(device_type, directory):
 
     model_params = {}
 

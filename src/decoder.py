@@ -120,7 +120,7 @@ class Decoder:
 
 
 
-    def computeQKV(self, X):
+    def compute_QKV(self, X):
         # b = batch_dim
         # s = seq_len
         # e = embedding_dim
@@ -131,7 +131,7 @@ class Decoder:
         V = torch.einsum("bse,hek->bhsk", X, self.WV_masked)
         return Q, K, V
     
-    def computeQKV2(self, X, X_encoder):
+    def compute_QKV2(self, X, X_encoder):
         # b = batch_dim
         # s = seq_len
         # e = embedding_dim
@@ -143,7 +143,7 @@ class Decoder:
         return Q, K, V
     
     
-    def maskedAttention(self, Q, K, V):
+    def masked_attention(self, Q, K, V):
         batch_size = Q.shape[0]
         seq_len = Q.shape[2]
         M = torch.tril(torch.full((batch_size, self.h, seq_len, seq_len), -torch.inf))
@@ -154,12 +154,12 @@ class Decoder:
         KT = K.transpose(-1, -2)
         return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
 
-    def computeMaskedHeads(self, X):
+    def compute_masked_heads(self, X):
         # X : (batch, seq_len, d_model)
 
-        Q, K, V = self.computeQKV(X)
+        Q, K, V = self.compute_QKV(X)
 
-        H_ = self.maskedAttention(Q, K, V)        # (batch, h, seq_len, dk)
+        H_ = self.masked_attention(Q, K, V)        # (batch, h, seq_len, dk)
 
         # reorder to (batch, seq_len, h, dk) then flatten heads
         H__ = H_.permute(0, 2, 1, 3)    # (batch, seq_len, h, dk)
@@ -168,10 +168,10 @@ class Decoder:
         
         return H
     
-    def computeHeads2(self, X, X_encoder):
+    def compute_heads2(self, X, X_encoder):
         # X : (batch, seq_len, d_model)
 
-        Q, K, V = self.computeQKV2(X, X_encoder)
+        Q, K, V = self.compute_QKV2(X, X_encoder)
 
         H_ = self.attention2(Q, K, V)        # (batch, h, seq_len, dk)
 
@@ -183,50 +183,50 @@ class Decoder:
         return H
     
     
-    def maskedMultiHeadedAttention(self, X):
+    def masked_multiheaded_attention(self, X):
         # X : (batch, seq_len, d_model)
-        H = self.computeMaskedHeads(X)      # (batch, seq_len, d_model)
+        H = self.compute_masked_heads(X)      # (batch, seq_len, d_model)
         return H @ self.WO_masked                     # (batch, seq_len, d_model)
     
-    def multiHeadedAttention2(self, X, X_encoder):
+    def multiheaded_attention2(self, X, X_encoder):
         # X : (batch, seq_len, d_model)
-        H = self.computeHeads2(X, X_encoder)      # (batch, seq_len, d_model)
+        H = self.compute_heads2(X, X_encoder)      # (batch, seq_len, d_model)
         return H @ self.WO                        # (batch, seq_len, d_model)
 
 
-    def addNorm(self, X, Y, ln):
+    def add_norm(self, X, Y, ln):
         Z = X + Y
         ZNorm = ln(Z)
         return ZNorm
 
 
-    def feedForward(self, curr_input):
+    def feed_forward(self, curr_input):
         for layer in self.ffLayers:
             curr_input = layer.feed(curr_input)
         return curr_input
 
 
-    def linearFeed(self, ZNorm3):
+    def linear_feed(self, ZNorm3):
         return ZNorm3 @ self.linear
 
 
     def feed(self, X, X_encoder):
-        MMH_A = self.maskedMultiHeadedAttention(X)
+        MMH_A = self.masked_multiheaded_attention(X)
         # print(MMH_A)
         # exit()
         
-        ZNorm1 = self.addNorm(X, MMH_A, self.ln_1)
+        ZNorm1 = self.add_norm(X, MMH_A, self.ln_1)
 
-        MH_A = self.multiHeadedAttention2(ZNorm1, X_encoder)
+        MH_A = self.multiheaded_attention2(ZNorm1, X_encoder)
         
-        ZNorm2 = self.addNorm(ZNorm1, MH_A, self.ln_2)
+        ZNorm2 = self.add_norm(ZNorm1, MH_A, self.ln_2)
         
         batch_size, seq_len = X.shape[:2]
-        ZFF = self.feedForward(
+        ZFF = self.feed_forward(
             ZNorm2.reshape(-1, self.d_model)
             ).reshape(batch_size, seq_len, self.d_model)
         
-        ZNorm3 = self.addNorm(ZNorm2, ZFF, self.ln_3)
+        ZNorm3 = self.add_norm(ZNorm2, ZFF, self.ln_3)
         
         return ZNorm3
 

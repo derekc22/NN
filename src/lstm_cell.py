@@ -102,7 +102,7 @@ class LSTMCell():
 
 
 
-    def generateState(self, batch_size):
+    def generate_state(self, batch_size):
         self.ht1 = torch.zeros(
         batch_size, self.gate_neuron_count, 
         dtype=torch.float32, 

@@ -49,7 +49,7 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
+            model_params=fetch_rnn_params_from_file(device_type, parameters_fpath),
             stateful=stateful,
             # batch_size=train_dataset_size,
             autoregressive=autoregressive,
@@ -72,15 +72,20 @@ if mode == "train":
             save_fpath=parameters_fpath,
         )
         
-    t, X = genSineWave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    t, X = gen_sine_wave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = gen_decaying_sine_wave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
 
 
-    (epoch_plt, loss_plt) = rnn.train(data_batch, label_batch, epochs, save_params=True)
+    epoch_plt, loss_plt = rnn.train(
+        data=data_batch, 
+        target=label_batch, 
+        epochs=epochs, 
+        save_params=True
+    )
     if epoch_plt and show_plot:
-        plotTrainingResults(epoch_plt, loss_plt, log_id)
+        plot_training_results(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 
@@ -89,8 +94,8 @@ else:
     test_dataset_size = test_config["test_dataset_size"]
     show_results = test_config["show_results"]
 
-    t, X = genSineWave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
-    # t, X = genDecayingSineWave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    t, X = gen_sine_wave(time_steps, freq, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
+    # t, X = gen_decaying_sine_wave(time_steps, -1, amp, T, test_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     t = t[:, :-1, :]
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
@@ -100,14 +105,14 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetchRNNParametersFromFile(device_type, parameters_fpath),
+        model_params=fetch_rnn_params_from_file(device_type, parameters_fpath),
         stateful=stateful,
         # batch_size=test_dataset_size,
         autoregressive=autoregressive
     )
 
     prediction_batch = rnn.inference(data_batch)
-    plotRegressionResults(t, prediction_batch, label_batch, log_id, show_results)
+    plot_regression_results(t, prediction_batch, label_batch, log_id, show_results)
 
 
 

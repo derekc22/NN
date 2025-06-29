@@ -4,8 +4,8 @@
     - completely refactor training scripts to fit new mlp weight matrix shape
     - add config yaml files for each model
     - create separate main.py scripts for each model that use the config files instead of argparse
-    - write symmetric tensor data generation function for mlp training/testing (genMatrixStack())
-    - abstracted inference result printing and calculation into separate function (printClassificationResults())
+    - write symmetric tensor data generation function for mlp training/testing (gen_matrix_stack())
+    - abstracted inference result printing and calculation into separate function (print_classification_results())
     - initialize logger and todo functionalities
     - initialize empty files for rnn, llm, lstm, and transformer model 
     - add changes.txt
@@ -18,7 +18,7 @@ rnn (05/21/2025)
    - added tanh activation function
    - added gradient clipping
 
-   - added sine wave data generation function (genSineWave())
+   - added sine wave data generation function (gen_sine_wave())
    -- generates batch of sine wave data with specified number of timesteps
    -- includes arguments for adding noise and varying phase to ensure diverse training data
 
@@ -62,7 +62,7 @@ rnn-auto-regressive (05/23/2025)
    -- will pause on rnn development for now and move on to lstm
 
    - working on this auto-regressive model revealed a logical bug in the original rnn model:
-   -- t, X = genSineWave() is what is returned from the genSineWave() function
+   -- t, X = gen_sine_wave() is what is returned from the gen_sine_wave() function
    -- in the non autoregressive model, t is used as the input to the model, which may be incorrect for the use case of rnns
    -- in this case, the model essentially learns a mapping from t to X, which is not the intended use case (i believe)
    -- the intended use case of these sequential models is to take some input sequence and predict the next element in the sequence
@@ -77,7 +77,7 @@ rnn-auto-regressive (05/23/2025)
    -- In the non autoregressive model, the only thing passed from t -> t+1 -> t+2 -> ... -> t+n is the 'hidden state' of the model
    -- In the autoregressive model, not only is the hidden state passed from t -> t+1 -> t+2 -> ... -> t+n, but also the output at the current time step
 
-   - added decaying sine wave data generation function (genDecayingSineWave())
+   - added decaying sine wave data generation function (gen_decaying_sine_wave())
    -- non autoregressive rnn model performs worse (abysmal) on this data than on the regular sine wave data
    -- in fact, both models (autoregressive and non autoregressive) perform worse on this data than on the regular sine wave data
    -- furthermore, when the equation is changed from  y=exp(-t)*sin(t) to y=exp(t)*sin(t) (that is, a growing sine wave instead of a decaying sine wave), both models perform even even worse
@@ -93,15 +93,15 @@ lstm (05/27/2025)
    -- this is an intentional design choice (i think it makes sense to have the output transformation as part of the final hidden layer)
    -- i believe that this architecture makes sense for the lstm, which is why i changed the rnn architecture to match
 
-   - improved utils/logger.py such that data/plotTrainingResults logs the training loss curves (in addition to the config file) via a 'log_id' that is automatically generated (via datetime) and added to the config file
-   -- also added functionality to data/plotRegressionResults.py that saves the first 5 regression result plots to the new log directory as well
+   - improved utils/logger.py such that data/plot_training_results logs the training loss curves (in addition to the config file) via a 'log_id' that is automatically generated (via datetime) and added to the config file
+   -- also added functionality to data/plot_regression_results.py that saves the first 5 regression result plots to the new log directory as well
 
    - changed "if self.is_conv_layer:" in the cnn class to "if self.type == 'convolutional':" to match the conventions of other architectures
 
    - fixed really dumb rnn bug whereby the state was being reset after each epoch, even if self.stateful=True
-   -- this was caused by me placing the call to self.generateState() INSIDE the 'forward()' call instead of outside of it
+   -- this was caused by me placing the call to self.generate_state() INSIDE the 'forward()' call instead of outside of it
    -- thus, the state attribute (self.ht1) would be re-initialized back to zeros after each epoch instead of being carried over to the next epoch
-   -- this was fixed by adding a flag called 'self.state_initialized' that is set to True after the first call to self.generateState() (which is guarded by an if statement: 'if self.stateful and not self.state_initialized:' )
+   -- this was fixed by adding a flag called 'self.state_initialized' that is set to True after the first call to self.generate_state() (which is guarded by an if statement: 'if self.stateful and not self.state_initialized:' )
 
    - moved self.epochs and self.epoch from src/network.py under the 'if training:' block of the Network constructor (it was previously outside of the 'if training:' block)
    -- this required refactoring the teacher forcing factor logic in src/rnn.py to be inside an 'if training:' block as well

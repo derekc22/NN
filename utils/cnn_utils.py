@@ -5,9 +5,9 @@ torch.set_printoptions(threshold=torch.inf)
 import glob, os, re
 import matplotlib.pyplot as plt, matplotlib.pylab as pylab
 from torchvision import transforms
-from utils.data import printClassificationResults
+from utils.data import print_classification_results
 
-def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_batch, color_channels, show_images):
+def print_pet_inference_results(dataset_size, img_batch, label_batch, prediction_batch, color_channels, show_images):
 
 
     if dataset_size == 1:
@@ -49,7 +49,7 @@ def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_ba
         # percent_correct = (num_correct/dataset_size)*100
         # print(f"percent correct = {percent_correct.item()}%")
 
-        printClassificationResults(dataset_size, prediction_batch, label_batch)
+        print_classification_results(dataset_size, prediction_batch, label_batch)
 
         if show_images:
             for (img, pred, lbl) in zip(img_batch, predictions, labels):
@@ -73,7 +73,7 @@ def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_ba
 
 
 
-# def printPetInferenceResultsMultiout(dataset_size, img_batch, label_batch, prediction_batch, color_channels):
+# def print_pet_inference_resultsMultiout(dataset_size, img_batch, label_batch, prediction_batch, color_channels):
 
 #     predictions = torch.argmax(prediction_batch, dim=0)
 
@@ -110,7 +110,7 @@ def printPetInferenceResults(dataset_size, img_batch, label_batch, prediction_ba
 
 
 
-def loadPetImageStack(multiout):
+def load_pet_img_stack(multiout):
 
     if multiout:
         img_batch = torch.load("petdatatensorsmultiout.pth")
@@ -129,7 +129,7 @@ def loadPetImageStack(multiout):
 
 
 
-def getPetImageTensor(transform, use):
+def get_pet_img_tensor(transform, use):
 
     label = "dog" if np.random.randint(0, 2) == 1 else "cat"
     if use == "train":
@@ -151,7 +151,7 @@ def getPetImageTensor(transform, use):
 
 
 
-def genPetImageStack(dataset_size, use, device_type, img_height, img_width, multi_out, save, color_channels):
+def gen_pet_img_stack(dataset_size, use, device_type, img_height, img_width, multi_out, save, color_channels):
 
 
     # Create dataset transformation
@@ -174,7 +174,7 @@ def genPetImageStack(dataset_size, use, device_type, img_height, img_width, mult
             transformations.append(transforms.Grayscale(num_output_channels=1))
 
         transform = transforms.Compose(transformations)
-        image_tensor, label = getPetImageTensor(transform, use)
+        image_tensor, label = get_pet_img_tensor(transform, use)
 
         # Insert into preallocated tensor
         data_tensors[n] = image_tensor
@@ -206,7 +206,7 @@ def genPetImageStack(dataset_size, use, device_type, img_height, img_width, mult
 
 
 
-def fetchCNNParametersFromFile(device_type, directory):
+def fetch_cnn_params_from_file(device_type, directory):
 
     model_params = {}
 
