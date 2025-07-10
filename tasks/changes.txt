@@ -134,5 +134,6 @@ transformer (06/28/2025)
 transformer (07/10/2025)
    - add tokenizer and positional encoding to transformer model
    - work on transformer training
+   - add attention mask to encoder and decoder (in addition to causal mask already present in decoder)
 
 
