@@ -125,8 +125,14 @@ transformer (06/21/2025)
    -- this was fixed by moving the instantiation of the batchnorm object to their respective __init__() methods
 
 
-transformer (???/2025)
+transformer (06/28/2025)
    - added override decorator to cnn backprop() method and copied generic version of backprop() method to network.py
    -- this way, there's less copied code and the backprop() method can be overridden in any model that needs to make specific implementation changes
    -- for example, mlp, rnn, lstm all use the generic backprop() functionality while cnn() has its own specific implementation
    -- thus, mlp, rnn, and lstm can simply inherit from Network version while cnn can override it
+
+transformer (07/10/2025)
+   - add tokenizer and positional encoding to transformer model
+   - work on transformer training
+
+

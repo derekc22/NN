@@ -15,7 +15,7 @@ hyperparameters:
   optimizer: adam
   reduction: mean
 log_id: logs/2025-06-29_00:50:05_rnn
-parameters_fpath: ./params/rnn/vanilla
+save_fpath: ./params/rnn/vanilla
 specs:
   autoregressive: false
   device_type: cpu

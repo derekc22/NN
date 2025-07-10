@@ -15,7 +15,7 @@ hyperparameters:
   optimizer: adam
   reduction: mean
 log_id: logs/2025-06-29_08:21:34_lstm
-parameters_fpath: ./params/lstm/vanilla
+save_fpath: ./params/lstm/vanilla
 specs:
   autoregressive: false
   device_type: cpu

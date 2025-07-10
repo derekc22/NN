@@ -73,7 +73,7 @@ def print_pet_inference_results(dataset_size, img_batch, label_batch, prediction
 
 
 
-# def print_pet_inference_resultsMultiout(dataset_size, img_batch, label_batch, prediction_batch, color_channels):
+# def print_pet_inference_results_multiout(dataset_size, img_batch, label_batch, prediction_batch, color_channels):
 
 #     predictions = torch.argmax(prediction_batch, dim=0)
 

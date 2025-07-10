@@ -15,13 +15,12 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-29_00:46:47_mlp
-parameters_fpath: ./params/mlp
+log_id: logs/2025-06-30_00:52:04_mlp
+save_fpath: ./params/mlp
 specs:
   device_type: cpu
   input_feature_count: 9
 test:
-  show_results: false
   test_dataset_size: 100
 train:
   epochs: 500

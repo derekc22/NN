@@ -1,27 +1,40 @@
 architecture:
-  depth: 2
-  ff_activation_fn: leakyReLU
-  ff_neuron_count: 2
-  num_heads: 4
-  vocab_size: 6
+  ff_architecture:
+    activation_fns:
+    - leakyReLU
+    - leakyReLU
+    neuron_counts:
+    - 2048
+    - 512
+  transformer_architecture:
+    depth: 6
+    num_heads: 8
 hyperparameters:
-  batch_size: null
-  dropout_rate: null
-  lambda_L2: 0.001
-  learn_rate: 0.01
-  loss_func: BCELoss
-  optimizer: null
-  reduction: mean
-log_id: logs/2025-06-29_00:40:00_transformer
-parameters_fpath: ./params/transformer
+  ff_hyperparameters:
+    dropout_rate: null
+    lambda_L2: null
+    learn_rate: 0.01
+    optimizer: null
+  transformer_hyperparameters:
+    batch_size: null
+    dropout_rate: null
+    lambda_L2: null
+    learn_rate: 0.01
+    loss_func: CELoss
+    optimizer: null
+    reduction: mean
+log_id: logs/2025-07-10_00:39:45_transformer
+parameters:
+  ff_save_fpath: ./params/transformer/transformer_ff
+  transformer_save_fpath: ./params/transformer
 specs:
   device_type: cpu
-  input_feature_count: 12
+  input_feature_count: 512
   type: both
 test:
   show_results: false
-  test_dataset_size: 100
+  test_dataset_size: null
 train:
-  epochs: 5
+  epochs: 500
   show_loss_plot: true
   train_dataset_size: 10
