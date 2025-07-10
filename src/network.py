@@ -1,11 +1,14 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_, clip_grad_value_
+import torch.nn.functional as F
+# from src.encoder import Encoder
+# from src.decoder import Decoder
 
 
 class Network:
 
-    def __init__(self, model_type, training, kwargs):
+    def __init__(self, model_type, training, **kwargs):
 
         self.model_type = model_type
 
@@ -100,6 +103,26 @@ class Network:
 
                 self.why_moment_list = [[0, 0]]*self.num_layers
                 self.by_moment_list = [[0, 0]]*self.num_layers
+                
+            elif self.model_type == "transformer":
+                
+                self.WQ_moment_list = [[0, 0]]*self.num_layers
+                self.WK_moment_list = [[0, 0]]*self.num_layers
+                self.WV_moment_list = [[0, 0]]*self.num_layers
+                self.WO_moment_list = [[0, 0]]*self.num_layers
+                
+                self.WQ_masked_moment_list = [[0, 0]]*self.num_layers
+                self.WK_masked_moment_list = [[0, 0]]*self.num_layers
+                self.WV_masked_moment_list = [[0, 0]]*self.num_layers
+                self.WO_masked_moment_list = [[0, 0]]*self.num_layers
+
+                # self.ffw1_moment_list = [[0, 0]]*self.num_layers
+                # self.ffb1_moment_list = [[0, 0]]*self.num_layers
+                # self.ffw2_moment_list = [[0, 0]]*self.num_layers
+                # self.ffb2_moment_list = [[0, 0]]*self.num_layers
+                
+                self.linear_moment_list = [[0, 0]]*self.num_layers
+
 
 
 
@@ -112,13 +135,48 @@ class Network:
 
 
 
-    # def train(self, data, target, epochs, save_params=True):
-    def train(self, **kwargs):
+    ## def train(self, data, target, epochs, save_params=True):
+    # def train(self, **kwargs):
         
-        data, target, epochs, save_params = (
-            kwargs.get("data"),  kwargs.get("target"), 
-            kwargs.get('epochs'),  kwargs.get("save_params", True)
-        )
+    #     data, target, epochs, save_params = (
+    #         kwargs.get("data"),  kwargs.get("target"), 
+    #         kwargs.get('epochs'),  kwargs.get("save_params", True)
+    #     )
+
+    #     epoch_plt = []
+    #     loss_plt = []
+    #     self.epochs = epochs
+
+    #     if not self.batch_size: self.batch_size = data.shape[0]
+
+    #     for epoch in range(epochs):
+            
+    #         self.epoch = epoch+1
+
+    #         data_batch, target_batch = self.batch(data, target)
+    #         pred_batch = self.forward(data_batch, training=True, **kwargs)
+    #         # print(f"pred: {pred_batch.shape}")
+
+    #         loss = getattr(self, self.loss_func)(pred_batch, target_batch)
+
+    #         if self.lambda_L2:
+    #             loss += self.l2_regularization()
+    #         self.backprop(loss)
+
+
+    #         epoch_plt.append(epoch)
+    #         loss_plt.append(loss.item())
+    #         print(f"epoch = {epoch+1}, loss = {loss}")
+    #         print(f"__________________________________________")
+            
+
+    #     if save_params:
+    #         self.save_parameters()
+            
+    #     return epoch_plt, loss_plt
+    
+
+    def train(self, data, target, epochs, save_params=True):
 
         epoch_plt = []
         loss_plt = []
@@ -129,10 +187,9 @@ class Network:
         for epoch in range(epochs):
             
             self.epoch = epoch+1
-            
+
             data_batch, target_batch = self.batch(data, target)
-            pred_batch = self.forward(data_batch, training=True, kwargs=kwargs)
-            # print(f"pred: {pred_batch.shape}")
+            pred_batch = self.forward(data_batch, training=True)
 
             loss = getattr(self, self.loss_func)(pred_batch, target_batch)
 
@@ -191,6 +248,49 @@ class Network:
         return data, target
 
 
+    # def CELoss(self, logits, labels):
+    #     # print(logits.shape)
+    #     # print(labels.shape)
+    #     # exit()
+    #     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self.tokenizer.pad_token_id)
+    #     loss = loss_fn(logits.view(-1, self.tokenizer.vocab_size), labels.view(-1))
+    #     return loss
+
+    def CELoss(self, logits, targets):
+        """
+        logits: Tensor of shape (B, S, V) — raw scores from model
+        targets: Tensor of shape (B, S) — token IDs
+        ignore_index: token ID to ignore in loss computation (e.g., pad_token_id)
+        """
+        ignore_index=self.tokenizer.pad_token_id
+        
+        # Numerical stability: subtract max logit from each row
+        max_logits = logits.max(dim=1, keepdim=True).values  # (B*S, 1)
+        logits_stable = logits - max_logits                  # (B*S, V)
+
+        # Exponentiate logits
+        exp_logits = torch.exp(logits_stable)                # (B*S, V)
+
+        # Compute partition function (sum over vocab)
+        sum_exp = exp_logits.sum(dim=1, keepdim=True)        # (B*S, 1)
+
+        # Log-Softmax: log(exp(logit) / sum_exp)
+        log_probs = logits_stable - torch.log(sum_exp)       # (B*S, V)
+
+        # Select the log-prob for the true class
+        idx = torch.arange(logits.size(0))
+        selected_log_probs = log_probs[idx, targets]         # (B*S,)
+
+        # Mask out ignored indices
+        if ignore_index is not None:
+            mask = targets != ignore_index
+            selected_log_probs = selected_log_probs[mask]
+
+        # Negative log likelihood
+        loss = -selected_log_probs.mean()
+            
+        ce_loss_reduced = self.reduce(loss)
+        return ce_loss_reduced
 
 
 
@@ -236,8 +336,7 @@ class Network:
 
 
     def BCELoss(self, pred_batch, target_batch):
-        # print(pred_batch.shape)
-        # print(target_batch.shape)
+
         epsilon = 1e-8
         pred_batch = torch.clamp(pred_batch, epsilon, 1 - epsilon)
         errs = target_batch * torch.log(pred_batch) + (1 - target_batch) * torch.log(1 - pred_batch)
@@ -267,7 +366,8 @@ class Network:
 
 
     def MSELoss(self, pred_batch, target_batch):
-        
+        print(pred_batch.shape)
+        print(target_batch.shape)
         errs = (pred_batch - target_batch)**2
         # mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) if self.batch_size else (1/pred_batch.shape[0])*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
         mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
@@ -320,6 +420,24 @@ class Network:
                     layer.why -= self.learn_rate * layer.why.grad
                     layer.by -= self.learn_rate * layer.by.grad
     
+            elif self.model_type == "transformer":
+                
+                layer.WQ -= self.learn_rate * layer.WQ.grad
+                layer.WK -= self.learn_rate * layer.WK.grad
+                layer.WV -= self.learn_rate * layer.WV.grad
+                layer.WO -= self.learn_rate * layer.WO.grad
+
+                # for ff_layer in layer.ff_layers: 
+                #     ff_layer.weights -= self.learn_rate * ff_layer.weights.grad           
+                #     ff_layer.biases -= self.learn_rate * ff_layer.biases.grad           
+                
+                if layer.component == "decoder":
+                    layer.WQ_masked -= self.learn_rate * layer.WQ_masked.grad
+                    layer.WK_masked -= self.learn_rate * layer.WK_masked.grad
+                    layer.WV_masked -= self.learn_rate * layer.WV_masked.grad
+                    layer.WO_masked -= self.learn_rate * layer.WO_masked.grad
+                    if layer.type == "output":
+                        layer.linear -= self.learn_rate * layer.linear.grad
     
     
     def adam(self, layer_index, gt, param_type, *args):
@@ -397,6 +515,23 @@ class Network:
                 if layer.type == "output":
                     layer.why -= optimizer_func(layer_index=layer_index, gt=layer.why.grad, param_type="why")
                     layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="by")
+            
+            elif self.model_type == "transformer":
+                # layer_index = self.layers.index(layer)
+                layer_index = layer.index-1 # why am i not just doing this???
+                layer.WQ -= optimizer_func(layer_index=layer_index, gt=layer.WQ.grad, param_type="WQ")
+                layer.WK -= optimizer_func(layer_index=layer_index, gt=layer.WK.grad, param_type="WK")
+                layer.WV -= optimizer_func(layer_index=layer_index, gt=layer.WV.grad, param_type="WV")
+                layer.WO -= optimizer_func(layer_index=layer_index, gt=layer.WO.grad, param_type="WO")
+                
+                if layer.component == "decoder":
+                    layer.WQ_masked -= optimizer_func(layer_index=layer_index, gt=layer.WQ_masked.grad, param_type="WQ_masked")
+                    layer.WK_masked -= optimizer_func(layer_index=layer_index, gt=layer.WK_masked.grad, param_type="WK_masked")
+                    layer.WV_masked -= optimizer_func(layer_index=layer_index, gt=layer.WV_masked.grad, param_type="WV_masked")
+                    layer.WO_masked -= optimizer_func(layer_index=layer_index, gt=layer.WO_masked.grad, param_type="WO_masked")
+
+                    if layer.type == "output":
+                        layer.linear -= optimizer_func(layer_index=layer_index, gt=layer.linear.grad, param_type="linear")
 
 
 
@@ -485,6 +620,25 @@ class Network:
                 if layer.type == "output":
                     layer.why.grad = None
                     layer.by.grad = None
+                    
+            elif self.model_type == "transformer":
+                
+                layer.WQ.grad = None
+                layer.WK.grad = None
+                layer.WV.grad = None
+                layer.WO.grad = None
+
+                # for ff_layer in layer.ff_layers:
+                #     ff_layer.weights.grad = None         
+                #     ff_layer.biases.grad = None         
+                
+                if layer.component == "decoder":
+                    layer.WQ_masked.grad = None
+                    layer.WK_masked.grad = None
+                    layer.WV_masked.grad = None
+                    layer.WO_masked.grad = None
+                    if layer.type == "output":
+                        layer.linear.grad = None
                     
 
 

@@ -20,7 +20,7 @@ mode = args.mode #specs["mode"]
 pretrained = args.pretrained #specs["pretrained"]
 input_feature_count = specs["input_feature_count"]
 
-parameters_fpath = config["parameters_fpath"]
+save_fpath = config["save_fpath"]
 architecture = config["architecture"]
 
 
@@ -42,8 +42,8 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetch_mlp_params_from_file(device_type, parameters_fpath),
-            save_fpath=parameters_fpath,
+            model_params=fetch_mlp_params_from_file(device_type, save_fpath),
+            save_fpath=save_fpath,
         )
     else:
         mlp = MLP(
@@ -53,7 +53,7 @@ if mode == "train":
             hyperparameters=hyperparameters,
             architecture=architecture,
             input_feature_count=input_feature_count,
-            save_fpath=parameters_fpath,
+            save_fpath=save_fpath,
         )
 
     epoch_plt, loss_plt = mlp.train(
@@ -70,7 +70,7 @@ if mode == "train":
 else:
     test_config = config["test"]
     test_dataset_size = test_config["test_dataset_size"]
-    show_images = test_config["show_results"]
+    show_results = test_config["show_results"]
 
     data_batch, label_batch = gen_matrix_stack(test_dataset_size, int(input_feature_count**(1/2)))
 
@@ -78,9 +78,10 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetch_mlp_params_from_file(device_type, parameters_fpath),
+        model_params=fetch_mlp_params_from_file(device_type, save_fpath),
     )
 
     prediction_batch = mlp.inference(data_batch)
+    print(prediction_batch.shape)
     print_classification_results(test_dataset_size, prediction_batch, label_batch)
 

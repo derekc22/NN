@@ -26,7 +26,7 @@ input_feature_count = specs["input_feature_count"]
 stateful = specs["stateful"]
 autoregressive = specs["autoregressive"]
 
-parameters_fpath = config["parameters_fpath"]
+save_fpath = config["save_fpath"]
 architecture = config["architecture"]
 
 freq = 2
@@ -48,11 +48,11 @@ if mode == "train":
             training=True,
             device_type=device_type,
             hyperparameters=hyperparameters,
-            model_params=fetch_rnn_params_from_file(device_type, parameters_fpath),
+            model_params=fetch_rnn_params_from_file(device_type, save_fpath),
             stateful=stateful,
             autoregressive=autoregressive,
             # batch_size=train_dataset_size,
-            save_fpath=parameters_fpath,
+            save_fpath=save_fpath,
         )
         
     else:
@@ -65,7 +65,7 @@ if mode == "train":
             input_feature_count=input_feature_count,
             stateful=stateful,
             autoregressive=autoregressive,
-            save_fpath=parameters_fpath,
+            save_fpath=save_fpath,
             # batch_size=train_dataset_size,
         )
         
@@ -102,7 +102,7 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        model_params=fetch_rnn_params_from_file(device_type, parameters_fpath),
+        model_params=fetch_rnn_params_from_file(device_type, save_fpath),
         stateful=stateful,
         autoregressive=autoregressive,
         # batch_size=test_dataset_size,

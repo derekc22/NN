@@ -10,21 +10,21 @@ class CNN(Network):
 
     def __init__(self, pretrained, device_type, training, **kwargs):
 
-        super().__init__(model_type="cnn", training=training, kwargs=kwargs)
+        super().__init__(model_type="cnn", training=training, **kwargs)
 
         self.device_type = torch.device(device_type)
-        self.save_fpath = kwargs.get("cnn_save_fpath")
+        self.save_fpath = kwargs.get("save_fpath")
         mlp_save_fpath = kwargs.get("mlp_save_fpath")
 
         if not pretrained:
-            architecture = kwargs.get("cnn_architecture")
+            architecture = kwargs.get("architecture")
             self.check_config(architecture=architecture)
             self.layers = self.build_layers(architecture=architecture)
 
             mlp_input_feature_count = self.calc_mlp_input_shape(kwargs.get("input_data_dim"))
             self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=mlp_input_feature_count, architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
         else:
-            self.layers = self.load_layers(kwargs.get("cnn_model_params"))
+            self.layers = self.load_layers(kwargs.get("model_params"))
             self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
 
         if not (self.layers and self.MLP.layers):
@@ -80,7 +80,8 @@ class CNN(Network):
     def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
-            layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
+            #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
+            layer.index = str(layer.index).zfill(2)
             torch.save(layer.kernels, f"{self.save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
             torch.save(layer.biases, f"{self.save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
 
@@ -90,7 +91,7 @@ class CNN(Network):
 
     def calc_mlp_input_shape(self, input_data_dim):
 
-        print("calculating MLP input shape.......")
+        print("calculating MLP input shape...")
 
         input_data_dim = (1, ) + input_data_dim
 
@@ -104,7 +105,7 @@ class CNN(Network):
 
 
 
-    def forward(self, curr_input, training, dummy=False, **kwargs): 
+    def forward(self, curr_input, training, dummy=False): 
 
         for layer in self.layers:
             if layer.type == "convolutional":

@@ -9,7 +9,7 @@ class RNN(Network):
     
     def __init__(self, pretrained, device_type, training, **kwargs):
 
-        super().__init__(model_type="rnn", training=training, kwargs=kwargs)
+        super().__init__(model_type="rnn", training=training, **kwargs)
 
         self.device_type = torch.device(device_type)
         self.stateful = kwargs.get("stateful", False)
@@ -113,7 +113,8 @@ class RNN(Network):
     def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
-            layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
+            #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
+            layer.index = str(layer.index).zfill(2)
             torch.save(layer.wxh, f"{self.save_fpath}/layer_{layer.index}_wxh.pth")
             torch.save(layer.whh, f"{self.save_fpath}/layer_{layer.index}_whh_{layer.whh_nonlinearity}.pth")
             torch.save(layer.bh, f"{self.save_fpath}/layer_{layer.index}_bh.pth")
@@ -254,7 +255,7 @@ class RNN(Network):
 
     
 
-    def forward(self, X, training, **kwargs):
+    def forward(self, X, training):
         """ if this is uncommented, it will force the pure teacher forcing LSTM implementations to run inference auto regressively (which i believe is the correct way to do it)
         however, since pure auto regressive inference currently sucks (both for the auto regressive and teacher forced implementations), i will leave it commented out such that I can at least see good results at inference for the teacher forced implementations
         but yeah i think this would be the more correct way to do it (i.e. to always run inference auto regressively) """

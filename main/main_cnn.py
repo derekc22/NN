@@ -25,10 +25,11 @@ input_data_dim = tuple(specs["input_data_dim"])
 color_channels, img_height, img_width = input_data_dim
 
 parameters = config["parameters"]
-cnn_parameters_fpath = parameters["cnn_parameters_fpath"]
-mlp_parameters_fpath = parameters["mlp_parameters_fpath"]
+cnn_save_fpath = parameters["cnn_save_fpath"]
+mlp_save_fpath = parameters["mlp_save_fpath"]
 architecture = config["architecture"]
-
+cnn_architecture = architecture["cnn_architecture"]
+mlp_architecture = architecture["mlp_architecture"]
 
 # Training mode
 if mode == "train":
@@ -58,10 +59,10 @@ if mode == "train":
             device_type=device_type,
             hyperparameters=cnn_hyperparameters,
             mlp_hyperparameters=mlp_hyperparameters,
-            cnn_model_params=fetch_cnn_params_from_file(device_type, cnn_parameters_fpath),
-            mlp_model_params=fetch_mlp_params_from_file(device_type, mlp_parameters_fpath),
-            cnn_save_fpath=cnn_parameters_fpath,
-            mlp_save_fpath=mlp_parameters_fpath,
+            model_params=fetch_cnn_params_from_file(device_type, cnn_save_fpath),
+            mlp_model_params=fetch_mlp_params_from_file(device_type, mlp_save_fpath),
+            save_fpath=cnn_save_fpath,
+            mlp_save_fpath=mlp_save_fpath,
         )
     else:
         cnn = CNN(
@@ -70,11 +71,11 @@ if mode == "train":
             device_type=device_type,
             hyperparameters=cnn_hyperparameters,
             mlp_hyperparameters=mlp_hyperparameters,
-            cnn_architecture=architecture["cnn_architecture"],
-            mlp_architecture=architecture["mlp_architecture"],
+            architecture=cnn_architecture,#architecture["cnn_architecture"],
+            mlp_architecture=mlp_architecture,#architecture["mlp_architecture"],
             input_data_dim=input_data_dim,
-            cnn_save_fpath=cnn_parameters_fpath,
-            mlp_save_fpath=mlp_parameters_fpath,
+            save_fpath=cnn_save_fpath,
+            mlp_save_fpath=mlp_save_fpath,
         )
 
     epoch_plt, loss_plt = cnn.train(
@@ -108,8 +109,8 @@ else:
         pretrained=True,
         training=False,
         device_type=device_type,
-        cnn_model_params=fetch_cnn_params_from_file(device_type, parameters["cnn_parameters_fpath"]),
-        mlp_model_params=fetch_mlp_params_from_file(device_type, parameters["mlp_parameters_fpath"]),
+        model_params=fetch_cnn_params_from_file(device_type, cnn_save_fpath), #parameters["cnn_save_fpath"]),
+        mlp_model_params=fetch_mlp_params_from_file(device_type, mlp_save_fpath) #parameters["mlp_save_fpath"]),
     )
 
     prediction_batch = cnn.inference(img_batch)

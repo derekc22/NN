@@ -8,7 +8,7 @@ class MLP(Network):
 
     def __init__(self, pretrained, training, device_type, **kwargs):
 
-        super().__init__(model_type="mlp", training=training, kwargs=kwargs)
+        super().__init__(model_type="mlp", training=training, **kwargs)
 
         self.device_type = torch.device(device_type)
         self.save_fpath = kwargs.get("save_fpath")
@@ -49,8 +49,11 @@ class MLP(Network):
 
         neuron_counts = architecture.get("neuron_counts")
         activation_fns = architecture.get("activation_fns")
-
-        neuron_counts.insert(0, self.input_feature_count)
+        # print(neuron_counts)
+        # print(activation_fns)
+        # exit()
+        # neuron_counts.insert(0, self.input_feature_count)
+        neuron_counts = [self.input_feature_count] + neuron_counts
         num_layers = len(neuron_counts)-1
 
         layers = [
@@ -69,14 +72,15 @@ class MLP(Network):
     def save_parameters(self):
         os.makedirs(f"{self.save_fpath}", exist_ok=True)
         for layer in self.layers:
-            layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
+            #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
+            layer.index = str(layer.index).zfill(2)
             torch.save(layer.weights, f"{self.save_fpath}/layer_{layer.index}_weights_{layer.nonlinearity}.pth")
             torch.save(layer.biases, f"{self.save_fpath}/layer_{layer.index}_biases_{layer.nonlinearity}.pth")
 
 
 
 
-    def forward(self, curr_input, training, **kwargs):
+    def forward(self, curr_input, training):
         for layer in self.layers:
 
             curr_input = layer.feed(curr_input)
