@@ -1,8 +1,8 @@
 architecture:
   ff_architecture:
     activation_fns:
-    - leakyReLU
-    - leakyReLU
+    - reLU
+    - reLU
     neuron_counts:
     - 2048
     - 512
@@ -12,18 +12,18 @@ architecture:
 hyperparameters:
   ff_hyperparameters:
     dropout_rate: null
-    lambda_L2: null
+    lambda_L2: 0.001
     learn_rate: 0.01
-    optimizer: null
+    optimizer: adam
   transformer_hyperparameters:
     batch_size: null
     dropout_rate: null
     lambda_L2: null
     learn_rate: 0.01
     loss_func: CELoss
-    optimizer: null
+    optimizer: adam
     reduction: mean
-log_id: logs/2025-07-10_00:39:45_transformer
+log_id: logs/2025-07-10_09:05:01_transformer
 parameters:
   ff_save_fpath: ./params/transformer/transformer_ff
   transformer_save_fpath: ./params/transformer
@@ -37,4 +37,4 @@ test:
 train:
   epochs: 500
   show_loss_plot: true
-  train_dataset_size: 10
+  train_dataset_size: null

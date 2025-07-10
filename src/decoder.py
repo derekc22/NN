@@ -3,15 +3,17 @@ import numpy as np
 import torch.nn as nn
 from utils.functions import softmax 
 from src.dense import DenseLayer
-torch.manual_seed(42)
+from models.mlp import MLP
+# torch.manual_seed(42)
 
 class Decoder:
 
     def __init__(self, pretrained, device_type, **kwargs):
 
+        self.index = int(kwargs.get("index"))
         self.device_type = device_type
         self.type = kwargs.get("type")
-        ff_nonlinearity = kwargs.get("ff_nonlinearity") # typically reLU or GELU
+        self.component = "decoder"
         
 
         if not pretrained:
@@ -75,26 +77,35 @@ class Decoder:
             
             
             ff_neuron_count = kwargs.get("ff_neuron_count") # typically 2048 or 4096
+            ff_nonlinearity = kwargs.get("ff_nonlinearity") # typically reLU or GELU
             
-            self.ffLayers = [
-                DenseLayer(
-                    pretrained=pretrained,
-                    device_type=device_type,
-                    nonlinearity=ff_nonlinearity,
-                    input_count=self.d_model,
-                    neuron_count=ff_neuron_count,
-                    index=1
-                ),
-                DenseLayer(
-                    pretrained=pretrained,
-                    device_type=device_type,
-                    nonlinearity="none",
-                    input_count=ff_neuron_count,
-                    neuron_count=self.d_model,
-                    index=2
-                )
-            ]
+            # self.ff_layers = [
+            #     DenseLayer(
+            #         pretrained=pretrained,
+            #         device_type=device_type,
+            #         nonlinearity=ff_nonlinearity,
+            #         input_count=self.d_model,
+            #         neuron_count=ff_neuron_count,
+            #         index=1
+            #     ),
+            #     DenseLayer(
+            #         pretrained=pretrained,
+            #         device_type=device_type,
+            #         nonlinearity="none",
+            #         input_count=ff_neuron_count,
+            #         neuron_count=self.d_model,
+            #         index=2
+            #     )
+            # ]
             
+            self.ff = MLP(pretrained=False, 
+                          device_type=self.device_type, 
+                          training=True, 
+                          input_feature_count=self.d_model, 
+                          architecture=kwargs.get("ff_architecture"), 
+                          hyperparameters=kwargs.get("ff_hyperparameters"), 
+                          save_fpath=kwargs.get("ff_save_fpath")
+                        )
             
             if self.type == "output":
                 V = kwargs.get("vocab_size")
@@ -103,7 +114,9 @@ class Decoder:
                     size=(self.d_model, V),
                     dtype=torch.float32,
                     device=self.device_type)
+                self.linear.requires_grad_()
 
+        self.padding_mask = kwargs.get("padding_mask")
 
         self.WQ_masked.requires_grad_()
         self.WK_masked.requires_grad_()
@@ -121,38 +134,59 @@ class Decoder:
 
 
     def compute_QKV(self, X):
-        # b = batch_dim
-        # s = seq_len
-        # e = embedding_dim
-        # h = num_heads
-        # k = dk
+        # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
         Q = torch.einsum("bse,hek->bhsk", X, self.WQ_masked)
         K = torch.einsum("bse,hek->bhsk", X, self.WK_masked)
         V = torch.einsum("bse,hek->bhsk", X, self.WV_masked)
         return Q, K, V
     
     def compute_QKV2(self, X, X_encoder):
-        # b = batch_dim
-        # s = seq_len
-        # e = embedding_dim
-        # h = num_heads
-        # k = dk
+        # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
         Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
         K = torch.einsum("bse,hek->bhsk", X_encoder, self.WK)
         V = torch.einsum("bse,hek->bhsk", X_encoder, self.WV)
         return Q, K, V
     
     
+    # def masked_attention(self, Q, K, V):
+    #     batch_size = Q.shape[0]
+    #     seq_len = Q.shape[2]
+    #     M = torch.tril(torch.full((batch_size, self.h, seq_len, seq_len), -torch.inf))
+    #     KT = K.transpose(-1, -2)
+    #     return softmax( (Q @ KT + M) / self.dk**0.5, dim=-1 ) @ V
+    
     def masked_attention(self, Q, K, V):
-        batch_size = Q.shape[0]
-        seq_len = Q.shape[2]
-        M = torch.tril(torch.full((batch_size, self.h, seq_len, seq_len), -torch.inf))
+        batch_size, _, seq_len, _ = Q.shape
+        causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device_type)).bool()
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)
+
+        if self.padding_mask is not None:
+            padding_mask = self.padding_mask.unsqueeze(1).unsqueeze(2).bool()  # (B, 1, 1, S)
+            combined_mask = padding_mask & causal_mask
+        else:
+            combined_mask = causal_mask
+
         KT = K.transpose(-1, -2)
-        return softmax( (Q @ KT + M) / self.dk**0.5, dim=-1 ) @ V
+        scores = (Q @ KT) / self.dk**0.5
+        scores = scores.masked_fill(combined_mask == 0, -torch.inf)
+        return softmax(scores, dim=-1) @ V
+
+    
+    # def attention2(self, Q, K, V):
+    #     KT = K.transpose(-1, -2)
+    #     return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
     
     def attention2(self, Q, K, V):
         KT = K.transpose(-1, -2)
-        return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
+        scores = (Q @ KT) / self.dk**0.5
+
+        if self.padding_mask is not None:
+            # padding_mask shape: (batch, seq_len)
+            # expand to (batch, 1, 1, seq_len) to broadcast over heads and queries
+            expanded_mask = self.padding_mask.unsqueeze(1).unsqueeze(2)
+            scores = scores.masked_fill(expanded_mask == 0, -torch.inf)
+
+        return softmax(scores, dim=-1) @ V
 
     def compute_masked_heads(self, X):
         # X : (batch, seq_len, d_model)
@@ -201,7 +235,7 @@ class Decoder:
 
 
     def feed_forward(self, curr_input):
-        for layer in self.ffLayers:
+        for layer in self.ff_layers:
             curr_input = layer.feed(curr_input)
         return curr_input
 
@@ -212,8 +246,6 @@ class Decoder:
 
     def feed(self, X, X_encoder):
         MMH_A = self.masked_multiheaded_attention(X)
-        # print(MMH_A)
-        # exit()
         
         ZNorm1 = self.add_norm(X, MMH_A, self.ln_1)
 
@@ -222,8 +254,11 @@ class Decoder:
         ZNorm2 = self.add_norm(ZNorm1, MH_A, self.ln_2)
         
         batch_size, seq_len = X.shape[:2]
-        ZFF = self.feed_forward(
-            ZNorm2.reshape(-1, self.d_model)
+        # ZFF = self.feed_forward(
+        #     ZNorm2.reshape(-1, self.d_model)
+        #     ).reshape(batch_size, seq_len, self.d_model)
+        ZFF = self.ff.forward(
+            ZNorm2.reshape(-1, self.d_model), training=True
             ).reshape(batch_size, seq_len, self.d_model)
         
         ZNorm3 = self.add_norm(ZNorm2, ZFF, self.ln_3)
@@ -260,11 +295,11 @@ if __name__ == "__main__":
         ff_nonlinearity="GELU"
     )
     
-    out = encoder.feed(xe)
-    print(out)
-    exit()    
+    # out = encoder.feed(xe)
+    # print(out)
+    # exit()    
 
-    decoder.feed(xd, out)
+    # decoder.feed(xd, out)
     
 # if __name__ == "__main__":
 #     batch_size_ = 5

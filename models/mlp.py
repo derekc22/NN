@@ -49,10 +49,6 @@ class MLP(Network):
 
         neuron_counts = architecture.get("neuron_counts")
         activation_fns = architecture.get("activation_fns")
-        # print(neuron_counts)
-        # print(activation_fns)
-        # exit()
-        # neuron_counts.insert(0, self.input_feature_count)
         neuron_counts = [self.input_feature_count] + neuron_counts
         num_layers = len(neuron_counts)-1
 

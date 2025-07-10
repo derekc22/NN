@@ -3,13 +3,16 @@ import numpy as np
 import torch.nn as nn
 from utils.functions import softmax 
 from src.dense import DenseLayer
-torch.manual_seed(42)
+from models.mlp import MLP
+# torch.manual_seed(42)
 
 class Encoder:
 
     def __init__(self, pretrained, device_type, **kwargs):
 
+        self.index = int(kwargs.get("index"))
         self.device_type = device_type
+        self.component = "encoder"
 
         if not pretrained:
             
@@ -48,24 +51,37 @@ class Encoder:
             ff_neuron_count = kwargs.get("ff_neuron_count") # typically 2048 or 4096
             ff_nonlinearity = kwargs.get("ff_nonlinearity") # typically reLU or GELU
             
-            self.ffLayers = [
-                DenseLayer(
-                    pretrained=pretrained,
-                    device_type=device_type,
-                    nonlinearity=ff_nonlinearity,
-                    input_count=self.d_model,
-                    neuron_count=ff_neuron_count,
-                    index=1
-                ),
-                DenseLayer(
-                    pretrained=pretrained,
-                    device_type=device_type,
-                    nonlinearity="none",
-                    input_count=ff_neuron_count,
-                    neuron_count=self.d_model,
-                    index=2
-                )
-            ]
+            # self.ff_layers = [
+            #     DenseLayer(
+            #         pretrained=pretrained,
+            #         device_type=device_type,
+            #         nonlinearity=ff_nonlinearity,
+            #         input_count=self.d_model,
+            #         neuron_count=ff_neuron_count,
+            #         index=1
+            #     ),
+            #     DenseLayer(
+            #         pretrained=pretrained,
+            #         device_type=device_type,
+            #         nonlinearity="none",
+            #         input_count=ff_neuron_count,
+            #         neuron_count=self.d_model,
+            #         index=2
+            #     )
+            # ]
+            
+            # print(kwargs.get("ff_architecture"))
+            # exit()
+            self.ff = MLP(pretrained=False, 
+                          device_type=self.device_type, 
+                          training=True, 
+                          input_feature_count=self.d_model, 
+                          architecture=kwargs.get("ff_architecture"), 
+                          hyperparameters=kwargs.get("ff_hyperparameters"), 
+                          save_fpath=kwargs.get("ff_save_fpath")
+                        )
+            
+        self.padding_mask = kwargs.get("padding_mask")
 
         self.WQ.requires_grad_()
         self.WK.requires_grad_()
@@ -78,27 +94,29 @@ class Encoder:
 
 
     def compute_QKV(self, X):
-        # b = batch_dim
-        # s = seq_len
-        # e = embedding_dim
-        # h = num_heads
-        # k = dk
+        # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
         Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
         K = torch.einsum("bse,hek->bhsk", X, self.WK)
         V = torch.einsum("bse,hek->bhsk", X, self.WV)
-        # print("tester")
-        # print(Q.grad_fn, Q.is_contiguous())
-        # print(K.grad_fn, K.is_contiguous())
-        # print(V.grad_fn, V.is_contiguous())
-        # print((K.mT).grad_fn, (K.mT).is_contiguous())
-        # print((Q @ K.mT).grad_fn, (Q @ K.mT).is_contiguous())
-        # exit()
         return Q, K, V
 
 
+    # def attention(self, Q, K, V):
+    #     KT = K.transpose(-1, -2)
+    #     return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
+    
     def attention(self, Q, K, V):
         KT = K.transpose(-1, -2)
-        return softmax( (Q @ KT) / self.dk**0.5, dim=-1 ) @ V
+        scores = (Q @ KT) / self.dk**0.5
+
+        if self.padding_mask is not None:
+            # padding_mask shape: (batch, seq_len)
+            # expand to (batch, 1, 1, seq_len) to broadcast over heads and queries
+            expanded_mask = self.padding_mask.unsqueeze(1).unsqueeze(2)
+            scores = scores.masked_fill(expanded_mask == 0, -torch.inf)
+
+        return softmax(scores, dim=-1) @ V
+
 
     def compute_heads(self, X):
         # X : (batch, seq_len, d_model)
@@ -129,7 +147,7 @@ class Encoder:
 
 
     def feed_forward(self, curr_input):
-        for layer in self.ffLayers:
+        for layer in self.ff_layers:
             curr_input = layer.feed(curr_input)
         return curr_input
 
@@ -141,8 +159,11 @@ class Encoder:
         ZNorm1 = self.add_norm(X, MH_A, self.ln_1)
 
         batch_size, seq_len = X.shape[:2]
-        ZFF = self.feed_forward(
-            ZNorm1.reshape(-1, self.d_model)
+        # ZFF = self.feed_forward(
+        #     ZNorm1.reshape(-1, self.d_model)
+        #     ).reshape(batch_size, seq_len, self.d_model)
+        ZFF = self.ff.forward(
+            ZNorm1.reshape(-1, self.d_model), training=True
             ).reshape(batch_size, seq_len, self.d_model)
         
         ZNorm2 = self.add_norm(ZNorm1, ZFF, self.ln_2)

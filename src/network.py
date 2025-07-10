@@ -628,10 +628,6 @@ class Network:
                 layer.WV.grad = None
                 layer.WO.grad = None
 
-                # for ff_layer in layer.ff_layers:
-                #     ff_layer.weights.grad = None         
-                #     ff_layer.biases.grad = None         
-                
                 if layer.component == "decoder":
                     layer.WQ_masked.grad = None
                     layer.WK_masked.grad = None
