@@ -1,5 +1,5 @@
 import torch
-from tokenizer import Seq2SeqInputPreprocessor
+from utils.encoder_decoder_tokenizer import Seq2SeqInputPreprocessor
 
 # Usage
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

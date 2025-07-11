@@ -21,6 +21,7 @@ class Encoder:
             
             assert (self.d_model > self.h and self.d_model % self.h == 0)
             self.dk = int(self.d_model/self.h)
+            self.sqrt_dk = self.dk**0.5
 
             stddev_model = np.sqrt(2 / self.d_model)
             
@@ -107,13 +108,14 @@ class Encoder:
     
     def attention(self, Q, K, V):
         KT = K.transpose(-1, -2)
-        scores = (Q @ KT) / self.dk**0.5
+        scores = (Q @ KT) / self.sqrt_dk
 
         if self.padding_mask is not None:
             # padding_mask shape: (batch, seq_len)
             # expand to (batch, 1, 1, seq_len) to broadcast over heads and queries
             expanded_mask = self.padding_mask.unsqueeze(1).unsqueeze(2)
-            scores = scores.masked_fill(expanded_mask == 0, -torch.inf)
+            # scores = scores.masked_fill(expanded_mask == 0, -torch.inf)
+            scores = scores.masked_fill(expanded_mask == 0, torch.finfo(scores.dtype).min)
 
         return softmax(scores, dim=-1) @ V
 
@@ -146,10 +148,10 @@ class Encoder:
         return ZNorm
 
 
-    def feed_forward(self, curr_input):
-        for layer in self.ff_layers:
-            curr_input = layer.feed(curr_input)
-        return curr_input
+    # def feed_forward(self, curr_input):
+    #     for layer in self.ff_layers:
+    #         curr_input = layer.feed(curr_input)
+    #     return curr_input
 
 
 

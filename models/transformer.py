@@ -17,8 +17,9 @@ class Transformer(Network):
         super().__init__(model_type="transformer", training=training, **kwargs)
 
         self.device_type = torch.device(device_type)
-        self.type = kwargs.get("type", "both") # options are: encoder, decoder, both (ie default option)
+        self.type = kwargs.get("type", "encoder-decoder") # options are: encoder, decoder, encoder-decoder (ie default option)
         self.tokenizer = kwargs.get("tokenizer")
+        self.save_fpath = kwargs.get("save_fpath")
         ff_save_fpath = kwargs.get("ff_save_fpath")
 
         if not pretrained:
@@ -98,7 +99,18 @@ class Transformer(Network):
         return layers, encoders, decoders
 
 
+    # def save_parameters(self):
+    #     os.makedirs(f"{self.save_fpath}", exist_ok=True)
+    #     for layer in self.layers:
+    #         layer.index = str(layer.index).zfill(2)
+    #         torch.save(layer.WQ, f"{self.save_fpath}/layer_{layer.index}_WQ.pth")
+    #         torch.save(layer.WK, f"{self.save_fpath}/layer_{layer.index}_WK.pth")
+    #         torch.save(layer.WQ, f"{self.save_fpath}/layer_{layer.index}_WQ.pth")
+    #         torch.save(layer.WQ, f"{self.save_fpath}/layer_{layer.index}_WQ.pth")
 
+    #         if layer.type == "output":
+    #             torch.save(layer.why, f"{self.save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
+    #             torch.save(layer.by, f"{self.save_fpath}/layer_{layer.index}_by.pth")
 
 
     def forward(self, training, **kwargs):
@@ -188,53 +200,6 @@ class Transformer(Network):
             # self.save_parameters()
             
         return epoch_plt, loss_plt
-    
-    # def train(self, data, target, epochs, save_params=True):
-
-    #     epoch_plt = []
-    #     loss_plt = []
-    #     self.epochs = epochs
-
-    #     if not self.batch_size: self.batch_size = data.shape[0]
-
-    #     for epoch in range(epochs):
-            
-    #         self.epoch = epoch+1
-
-    #         data_batch, target_batch = self.batch(data, target)
-    #         pred_batch = self.forward(data_batch, training=True)
-
-    #         loss = getattr(self, self.loss_func)(pred_batch, target_batch)
-
-    #         if self.lambda_L2:
-    #             loss += self.l2_regularization()
-    #         self.backprop(loss)
-
-
-    #         epoch_plt.append(epoch)
-    #         loss_plt.append(loss.item())
-    #         print(f"epoch = {epoch+1}, loss = {loss}")
-    #         print(f"__________________________________________")
-            
-
-    #     if save_params:
-    #         self.save_parameters()
-            
-    #     return epoch_plt, loss_plt
-        
-
-
-
-
-    # if __name__ == "__main__":
-    #     a = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-    #     b = torch.tensor([[5.0, 6.0], [7.0, 8.0]])
-    #     print(a)
-    #     print(b)
-    #     print(a * b)  # or torch.mul(a, b)
-    #     print(a @ b)
-    #     # Output: tensor([[ 5.0, 12.0], [21.0, 32.0]])
-
 
 
     @override

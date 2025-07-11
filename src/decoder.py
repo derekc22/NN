@@ -23,6 +23,7 @@ class Decoder:
             
             assert (self.d_model > self.h and self.d_model % self.h == 0)
             self.dk = int(self.d_model/self.h)
+            self.sqrt_dk = self.dk**0.5
 
             stddev_model = np.sqrt(2 / self.d_model)
             
@@ -116,7 +117,6 @@ class Decoder:
                     device=self.device_type)
                 self.linear.requires_grad_()
 
-        self.padding_mask = kwargs.get("padding_mask")
 
         self.WQ_masked.requires_grad_()
         self.WK_masked.requires_grad_()
@@ -131,6 +131,8 @@ class Decoder:
         self.ln_2 = nn.LayerNorm(self.d_model)
         self.ln_3 = nn.LayerNorm(self.d_model)
 
+        self.padding_mask = kwargs.get("padding_mask")
+        self.combined_mask = None
 
 
     def compute_QKV(self, X):
@@ -155,20 +157,27 @@ class Decoder:
     #     KT = K.transpose(-1, -2)
     #     return softmax( (Q @ KT + M) / self.dk**0.5, dim=-1 ) @ V
     
+    # def masked_attention(self, Q, K, V):
+    #     batch_size, _, seq_len, _ = Q.shape
+    #     causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device_type)).bool()
+    #     causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)
+
+    #     if self.padding_mask is not None:
+    #         padding_mask = self.padding_mask.unsqueeze(1).unsqueeze(2).bool()  # (B, 1, 1, S)
+    #         combined_mask = padding_mask & causal_mask
+    #     else:
+    #         combined_mask = causal_mask
+
+    #     KT = K.transpose(-1, -2)
+    #     scores = (Q @ KT) / self.dk**0.5
+    #     scores = scores.masked_fill(combined_mask == 0, -torch.inf)
+    #     return softmax(scores, dim=-1) @ V
+    
     def masked_attention(self, Q, K, V):
-        batch_size, _, seq_len, _ = Q.shape
-        causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device_type)).bool()
-        causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)
-
-        if self.padding_mask is not None:
-            padding_mask = self.padding_mask.unsqueeze(1).unsqueeze(2).bool()  # (B, 1, 1, S)
-            combined_mask = padding_mask & causal_mask
-        else:
-            combined_mask = causal_mask
-
         KT = K.transpose(-1, -2)
-        scores = (Q @ KT) / self.dk**0.5
-        scores = scores.masked_fill(combined_mask == 0, -torch.inf)
+        scores = (Q @ KT) / self.sqrt_dk
+        # scores = scores.masked_fill(self.combined_mask == 0, -torch.inf)
+        scores = scores.masked_fill(self.combined_mask == 0, torch.finfo(scores.dtype).min)
         return softmax(scores, dim=-1) @ V
 
     
@@ -178,13 +187,14 @@ class Decoder:
     
     def attention2(self, Q, K, V):
         KT = K.transpose(-1, -2)
-        scores = (Q @ KT) / self.dk**0.5
+        scores = (Q @ KT) / self.sqrt_dk
 
         if self.padding_mask is not None:
             # padding_mask shape: (batch, seq_len)
             # expand to (batch, 1, 1, seq_len) to broadcast over heads and queries
             expanded_mask = self.padding_mask.unsqueeze(1).unsqueeze(2)
-            scores = scores.masked_fill(expanded_mask == 0, -torch.inf)
+            # scores = scores.masked_fill(expanded_mask == 0, -torch.inf)
+            scores = scores.masked_fill(expanded_mask == 0, torch.finfo(scores.dtype).min)
 
         return softmax(scores, dim=-1) @ V
 
@@ -234,17 +244,31 @@ class Decoder:
         return ZNorm
 
 
-    def feed_forward(self, curr_input):
-        for layer in self.ff_layers:
-            curr_input = layer.feed(curr_input)
-        return curr_input
+    # def feed_forward(self, curr_input):
+    #     for layer in self.ff_layers:
+    #         curr_input = layer.feed(curr_input)
+    #     return curr_input
 
 
     def linear_feed(self, ZNorm3):
         return ZNorm3 @ self.linear
 
 
+    def gen_mask(self, X):
+        _, seq_len, _ = X.shape
+        causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device_type)).bool()
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)    
+        if self.padding_mask is not None:
+            padding_mask = self.padding_mask.unsqueeze(1).unsqueeze(2).bool()  # (B, 1, 1, S)
+            self.combined_mask = padding_mask & causal_mask
+        else:
+            self.combined_mask = causal_mask    
+
+
     def feed(self, X, X_encoder):
+        
+        self.gen_mask(X)
+
         MMH_A = self.masked_multiheaded_attention(X)
         
         ZNorm1 = self.add_norm(X, MMH_A, self.ln_1)
