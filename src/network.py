@@ -248,49 +248,52 @@ class Network:
         return data, target
 
 
-    # def CELoss(self, logits, labels):
-    #     # print(logits.shape)
-    #     # print(labels.shape)
-    #     # exit()
-    #     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self.tokenizer.pad_token_id)
-    #     loss = loss_fn(logits.view(-1, self.tokenizer.vocab_size), labels.view(-1))
-    #     return loss
-
-    def CELoss(self, logits, targets):
-        """
-        logits: Tensor of shape (B, S, V) — raw scores from model
-        targets: Tensor of shape (B, S) — token IDs
-        ignore_index: token ID to ignore in loss computation (e.g., pad_token_id)
-        """
-        ignore_index=self.tokenizer.pad_token_id
-        
-        # Numerical stability: subtract max logit from each row
-        max_logits = logits.max(dim=1, keepdim=True).values  # (B*S, 1)
-        logits_stable = logits - max_logits                  # (B*S, V)
-
-        # Exponentiate logits
-        exp_logits = torch.exp(logits_stable)                # (B*S, V)
-
-        # Compute partition function (sum over vocab)
-        sum_exp = exp_logits.sum(dim=1, keepdim=True)        # (B*S, 1)
-
-        # Log-Softmax: log(exp(logit) / sum_exp)
-        log_probs = logits_stable - torch.log(sum_exp)       # (B*S, V)
-
-        # Select the log-prob for the true class
-        idx = torch.arange(logits.size(0))
-        selected_log_probs = log_probs[idx, targets]         # (B*S,)
-
-        # Mask out ignored indices
-        if ignore_index is not None:
-            mask = targets != ignore_index
-            selected_log_probs = selected_log_probs[mask]
-
-        # Negative log likelihood
-        loss = -selected_log_probs.mean()
-            
+    def CELoss(self, logits, labels):
+        # print(logits.shape)
+        # print(labels.shape)
+        # exit()
+        loss_fn = torch.nn.CrossEntropyLoss(ignore_index=self.tokenizer.pad_token_id)
+        loss = loss_fn(logits.view(-1, self.tokenizer.vocab_size), labels.view(-1))
+        # return loss
+    
         ce_loss_reduced = self.reduce(loss)
         return ce_loss_reduced
+
+    # def CELoss(self, logits, targets):
+    #     """
+    #     logits: Tensor of shape (B, S, V) — raw scores from model
+    #     targets: Tensor of shape (B, S) — token IDs
+    #     ignore_index: token ID to ignore in loss computation (e.g., pad_token_id)
+    #     """
+    #     ignore_index=self.tokenizer.pad_token_id
+        
+    #     # Numerical stability: subtract max logit from each row
+    #     max_logits = logits.max(dim=1, keepdim=True).values  # (B*S, 1)
+    #     logits_stable = logits - max_logits                  # (B*S, V)
+
+    #     # Exponentiate logits
+    #     exp_logits = torch.exp(logits_stable)                # (B*S, V)
+
+    #     # Compute partition function (sum over vocab)
+    #     sum_exp = exp_logits.sum(dim=1, keepdim=True)        # (B*S, 1)
+
+    #     # Log-Softmax: log(exp(logit) / sum_exp)
+    #     log_probs = logits_stable - torch.log(sum_exp)       # (B*S, V)
+
+    #     # Select the log-prob for the true class
+    #     idx = torch.arange(logits.size(0))
+    #     selected_log_probs = log_probs[idx, targets]         # (B*S,)
+
+    #     # Mask out ignored indices
+    #     if ignore_index is not None:
+    #         mask = targets != ignore_index
+    #         selected_log_probs = selected_log_probs[mask]
+
+    #     # Negative log likelihood
+    #     loss = -selected_log_probs.mean()
+            
+    #     ce_loss_reduced = self.reduce(loss)
+    #     return ce_loss_reduced
 
 
 
