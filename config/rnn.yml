@@ -2,10 +2,11 @@ architecture:
   hidden_activation_fn: sigmoid
   hidden_state_neuron_counts:
   - 64
+  input_feature_count: 1
   output_activation_fn: none
   output_feature_count: 1
 hyperparameters:
-  batch_size: 3
+  batch_size: 32
   dropout_rate: null
   grad_clip_norm: null
   grad_clip_value: null
@@ -14,13 +15,13 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-29_00:50:05_rnn
-save_fpath: ./params/rnn/vanilla
-specs:
+log_id: logs/2025-07-13_12:23:25_rnn
+specifications:
   autoregressive: false
-  device_type: cpu
-  input_feature_count: 1
   stateful: true
+system:
+  device: cpu
+  save_fpath: ./params/rnn/vanilla
 test:
   show_results: true
   test_dataset_size: 50

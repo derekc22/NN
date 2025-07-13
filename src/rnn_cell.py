@@ -6,12 +6,12 @@ torch.manual_seed(42)
 
 class RNNCell():
 
-    def __init__(self, pretrained, device_type, **kwargs):
+    def __init__(self, pretrained, device, **kwargs):
 
-        # super().__init__(pretrained, device_type, **kwargs)
+        # super().__init__(pretrained, device, **kwargs)
 
         self.index = int(kwargs.get("index"))
-        self.device_type = device_type
+        self.device = device
         self.whh_nonlinearity = kwargs.get("hidden_nonlinearity")
         self.why_nonlinearity = kwargs.get("output_nonlinearity") 
         self.type = kwargs.get("type")
@@ -40,19 +40,19 @@ class RNNCell():
                 0, stddev_wxh, 
                 size=(wxh_input_count, wxh_neuron_count), 
                 dtype=torch.float32, 
-                device=self.device_type)  # Xavier Initialization
+                device=self.device)  # Xavier Initialization
 
             stddev_whh = np.sqrt(2 / (whh_input_count + whh_neuron_count))
             self.whh = torch.normal(
                 0, stddev_whh,
                 size=(whh_input_count, whh_neuron_count), 
                 dtype=torch.float32, 
-                device=self.device_type)  # Xavier Initialization
+                device=self.device)  # Xavier Initialization
 
             self.bh = torch.zeros(
                 1, whh_neuron_count, 
                 dtype=torch.float32, 
-                device=self.device_type)
+                device=self.device)
 
             if self.type == "output":
                 why_input_count = kwargs.get("why_input_count")
@@ -62,18 +62,18 @@ class RNNCell():
                     0, stddev_why, 
                     size=(why_input_count, why_neuron_count), 
                     dtype=torch.float32, 
-                    device=self.device_type)  # Xavier Initialization
+                    device=self.device)  # Xavier Initialization
             
-                self.by = torch.zeros(1, why_neuron_count, dtype=torch.float32, device=self.device_type)
+                self.by = torch.zeros(1, why_neuron_count, dtype=torch.float32, device=self.device)
             
         else:
-            self.wxh = kwargs.get("pretrained_wxh").to(device=self.device_type)
+            self.wxh = kwargs.get("pretrained_wxh").to(device=self.device)
             wxh_neuron_count = self.wxh.shape[-1]
-            self.whh = kwargs.get("pretrained_whh").to(device=self.device_type)
-            self.bh = kwargs.get("pretrained_bh").to(device=self.device_type)
+            self.whh = kwargs.get("pretrained_whh").to(device=self.device)
+            self.bh = kwargs.get("pretrained_bh").to(device=self.device)
             if self.type == "output":
-                self.why = kwargs.get("pretrained_why").to(device=self.device_type)
-                self.by = kwargs.get("pretrained_by").to(device=self.device_type)
+                self.why = kwargs.get("pretrained_why").to(device=self.device)
+                self.by = kwargs.get("pretrained_by").to(device=self.device)
             
 
 
@@ -94,7 +94,7 @@ class RNNCell():
         self.ht1 = torch.zeros(
         batch_size, self.wxh_neuron_count, 
         dtype=torch.float32, 
-        device=self.device_type)
+        device=self.device)
 
 
 

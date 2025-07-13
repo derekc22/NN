@@ -3,8 +3,6 @@ from utils.data import *
 from utils.rnn_utils import *
 from utils.logger import load_config
 from models.rnn import RNN
-import numpy as np
-import matplotlib.pyplot as plt
 import argparse
 
 parser = argparse.ArgumentParser(description='Set run options')
@@ -13,19 +11,22 @@ parser.add_argument('--mode', type=str, help='Specify "train" or "test"')
 parser.add_argument('--pretrained', action="store_true", help='Specify if model is pretrained')
 args = parser.parse_args()
 
-
 config = load_config(args.config)
+log_id = config['log_id']
 
-specs = config["specs"]
-device_type = specs["device_type"] 
-mode = args.mode 
-pretrained = args.pretrained 
-input_feature_count = specs["input_feature_count"]
-stateful = specs["stateful"]
+system = config["system"]
+device = system["device"]
+save_fpath = system["save_fpath"]
 
-save_fpath = config["save_fpath"]
+specifications = config["specifications"]
+stateful = specifications["stateful"]
+autoregressive = specifications["autoregressive"]
+
 architecture = config["architecture"]
+input_feature_count = architecture["input_feature_count"]
 
+mode = args.mode
+pretrained = args.pretrained
 
 # Training mode
 if mode == "train":
@@ -39,27 +40,23 @@ if mode == "train":
         rnn = RNN(
             pretrained=True,
             training=True,
-            device_type=device_type,
+            device=device,
+            params=fetch_rnn_params_from_file(device, save_fpath),
             hyperparameters=hyperparameters,
-            model_params=fetch_rnn_params_from_file(device_type, save_fpath),
-            stateful=stateful,
-            batch_size=train_dataset_size,
+            save_fpath=save_fpath,
+            specifications=specifications
         )
         
     else:
         rnn = RNN(
             pretrained=False,
             training=True,
-            device_type=device_type,
-            hyperparameters=hyperparameters,
+            device=device,
             architecture=architecture,
-            input_feature_count=input_feature_count,
-            stateful=stateful,
-            batch_size=train_dataset_size,
+            hyperparameters=hyperparameters,
             save_fpath=save_fpath,
+            specifications=specifications
         )
-
-
 
     data_batch = torch.load("data/text/embeddings/data_batch.pth")[:train_dataset_size]
     label_batch = torch.load("data/text/embeddings/label_batch.pth")[:train_dataset_size]
@@ -72,7 +69,7 @@ if mode == "train":
     )
     
     if epoch_plt and show_plot:
-        plot_training_resultsepoch_plt, loss_plt
+        plot_training_results(epoch_plt, loss_plt, log_id)
 
 # Testing mode
 
@@ -80,14 +77,12 @@ else:
     test_config = config["test"]
     test_dataset_size = test_config["test_dataset_size"]
 
-
     rnn = RNN(
         pretrained=True,
         training=False,
-        device_type=device_type,
-        model_params=fetch_rnn_params_from_file(device_type, save_fpath),
-        stateful=stateful,
-        batch_size=test_dataset_size,
+        device=device,
+        params=fetch_rnn_params_from_file(device, save_fpath),
+        specifications=specifications
     )
 
     data_batch = torch.load("data/text/embeddings/data_batch.pth")[:test_dataset_size]

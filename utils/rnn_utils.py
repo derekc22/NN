@@ -33,9 +33,9 @@ def gen_decaying_sine_wave(time_steps, freq, amp, T, batch_size, vary_dt, vary_p
 
 
 
-def fetch_rnn_params_from_file(device_type, directory):
+def fetch_rnn_params_from_file(device, directory):
 
-    model_params = {}
+    params = {}
 
     # Use glob to get all files matching the pattern
     wxh_pattern = "layer_*_wxh.pth"  # Pattern to match
@@ -57,15 +57,15 @@ def fetch_rnn_params_from_file(device_type, directory):
     regex_pattern_whh = r"layer_(\d+)_whh_(.*?)\.pth"
     for (wxh_f, whh_f, bh_f) in zip(wxh_files, whh_files, bh_files):
 
-        wxh = torch.load(wxh_f, map_location=device_type)
-        whh = torch.load(whh_f, map_location=device_type)
-        bh = torch.load(bh_f, map_location=device_type)
+        wxh = torch.load(wxh_f, map_location=device)
+        whh = torch.load(whh_f, map_location=device)
+        bh = torch.load(bh_f, map_location=device)
 
         match = re.search(regex_pattern_whh, whh_f)
         index = match.group(1)
         hidden_activation = match.group(2)
 
-        model_params.update({f"Layer {index}": [wxh, whh, bh, hidden_activation, index] })
+        params.update({f"Layer {index}": [wxh, whh, bh, hidden_activation, index] })
     
 
     why_pattern = "layer_*_why_*.pth"  # Pattern to match
@@ -76,8 +76,8 @@ def fetch_rnn_params_from_file(device_type, directory):
     by_files = glob.glob(os.path.join(directory, by_pattern))
     by_files.sort()
 
-    why = torch.load(why_files[0], map_location=device_type)
-    by = torch.load(by_files[0], map_location=device_type)
+    why = torch.load(why_files[0], map_location=device)
+    by = torch.load(by_files[0], map_location=device)
 
     regex_pattern_why = r"layer_(\d+)_why_(.*?)\.pth"
     match = re.search(regex_pattern_why, why_files[-1])
@@ -85,10 +85,10 @@ def fetch_rnn_params_from_file(device_type, directory):
     output_activation = match.group(2)
 
     output_params =  [why, by, output_activation]
-    model_params[f"Layer {index}"][4:4] = output_params
+    params[f"Layer {index}"][4:4] = output_params
 
     
-    return model_params
+    return params
 
 
 
@@ -216,8 +216,8 @@ def gen_text_training_data(readlines_arr: list, embed_dim):
 
 
 if __name__ == "__main__":
-#   model_params = fetch_rnn_params_from_file("cpu", "params/paramsRNN")
-#   print(model_params)
+#   params = fetch_rnn_params_from_file("cpu", "params/paramsRNN")
+#   print(params)
 
 
     embed_dim = 100

@@ -6,9 +6,9 @@ import numpy as np
 
 
 
-def fetch_lstm_params_from_file(device_type, directory):
+def fetch_lstm_params_from_file(device, directory):
 
-    model_params = {}
+    params = {}
 
     # Use glob to get all files matching the pattern
     wf_pattern = "layer_*_wf_*.pth"  # Pattern to match
@@ -50,22 +50,22 @@ def fetch_lstm_params_from_file(device_type, directory):
     regex_pattern_wf = r"layer_(\d+)_wf_(.*?)\.pth"
     for (wf_f, wi_f, wc_f, wo_f, bf_f, bi_f, bc_f, bo_f) in zip(wf_files, wi_files, wc_files, wo_files, bf_files, bi_files, bc_files, bo_files):
 
-        wf = torch.load(wf_f, map_location=device_type)
-        wi = torch.load(wi_f, map_location=device_type)
-        wc = torch.load(wc_f, map_location=device_type)
-        wo = torch.load(wo_f, map_location=device_type)
+        wf = torch.load(wf_f, map_location=device)
+        wi = torch.load(wi_f, map_location=device)
+        wc = torch.load(wc_f, map_location=device)
+        wo = torch.load(wo_f, map_location=device)
 
-        bf = torch.load(bf_f, map_location=device_type)
-        bi = torch.load(bi_f, map_location=device_type)
-        bc = torch.load(bc_f, map_location=device_type)
-        bo = torch.load(bo_f, map_location=device_type)
+        bf = torch.load(bf_f, map_location=device)
+        bi = torch.load(bi_f, map_location=device)
+        bc = torch.load(bc_f, map_location=device)
+        bo = torch.load(bo_f, map_location=device)
 
 
         match = re.search(regex_pattern_wf, wf_f)
         index = match.group(1)
         gate_activation = match.group(2)
 
-        model_params.update({f"Layer {index}": [wf, wi, wc, wo, bf, bi, bc, bo, gate_activation, index] })
+        params.update({f"Layer {index}": [wf, wi, wc, wo, bf, bi, bc, bo, gate_activation, index] })
     
 
     why_pattern = "layer_*_why_*.pth"  # Pattern to match
@@ -76,8 +76,8 @@ def fetch_lstm_params_from_file(device_type, directory):
     by_files = glob.glob(os.path.join(directory, by_pattern))
     by_files.sort()
 
-    why = torch.load(why_files[0], map_location=device_type)
-    by = torch.load(by_files[0], map_location=device_type)
+    why = torch.load(why_files[0], map_location=device)
+    by = torch.load(by_files[0], map_location=device)
 
     regex_pattern_why = r"layer_(\d+)_why_(.*?)\.pth"
     match = re.search(regex_pattern_why, why_files[-1])
@@ -85,6 +85,6 @@ def fetch_lstm_params_from_file(device_type, directory):
     output_activation = match.group(2)
 
     output_params =  [why, by, output_activation]
-    model_params[f"Layer {index}"][9:9] = output_params
+    params[f"Layer {index}"][9:9] = output_params
     
-    return model_params
+    return params

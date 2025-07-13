@@ -10,6 +10,10 @@ architecture:
     - 2
     - 4
     - 4
+    input_data_dim:
+    - 1
+    - 64
+    - 64
     kernel_shapes:
     - - 5
       - 5
@@ -48,17 +52,13 @@ hyperparameters:
     lambda_L2: 0.001
     learn_rate: 0.01
     optimizer: adam
-log_id: logs/2025-07-09_21:55:32_cnn
-parameters:
-  cnn_save_fpath: ./params/cnn/pets
-  mlp_save_fpath: ./params/cnn/pets/cnn_mlp
-specs:
-  device_type: cpu
-  input_data_dim:
-  - 1
-  - 64
-  - 64
+log_id: logs/2025-07-13_12:55:21_cnn
+specifications:
   multi_out: false
+system:
+  device: cpu
+  mlp_save_fpath: ./params/cnn/pets/mlp
+  save_fpath: ./params/cnn/pets
 test:
   show_results: true
   test_dataset_size: 100

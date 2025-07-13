@@ -7,31 +7,29 @@ import os
 
 class LSTM(Network):
     
-    def __init__(self, pretrained, device_type, training, **kwargs):
+    def __init__(self, pretrained, device, training, **kwargs):
 
         super().__init__(model_type="lstm", training=training, **kwargs)
 
-        self.device_type = torch.device(device_type)
-        self.stateful = kwargs.get("stateful", False)
+        self.device = torch.device(device)
         self.save_fpath = kwargs.get("save_fpath")
+        
+        specifications = kwargs.get("specifications")
+        self.stateful = specifications.get("stateful")
+        self.autoregressive = specifications.get("autoregressive")
+        self.teacher_forcing = specifications.get("teacher_forcing") # If no teacher_forcing factor is set (ie like at inference), the model should be 100% auto-regressive
         
         if self.stateful:
             self.state_initialized = False
-        self.autoregressive = kwargs.get("autoregressive", False)
-        self.autoregressive = kwargs.get("autoregressive", False)
-        self.teacher_forcing = kwargs.get("teacher_forcing")
 
         if not pretrained:
-            architecture = kwargs.get("architecture")
-            self.input_feature_count = kwargs.get("input_feature_count")
-            self.layers = self.build_layers(architecture=architecture)
+            self.layers = self.build_layers(kwargs.get("architecture"))
         else:
-            self.layers = self.load_layers(model_params=kwargs.get("model_params"))
+            self.layers = self.load_layers(kwargs.get("params"))
 
         self.gate_nonlinearity = self.layers[0].gate_nonlinearity
         self.why_nonlinearity = self.layers[-1].why_nonlinearity
         
-
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
         self.num_layers = len(self.layers)
@@ -43,13 +41,13 @@ class LSTM(Network):
 
 
 
-    def load_layers(self, model_params):
+    def load_layers(self, params):
         
         layers = [ 
 
             LSTMCell( 
             pretrained=True, 
-            device_type=self.device_type,
+            device=self.device,
             type="hidden",
             pretrained_wf=wf,
             pretrained_wi=wi,
@@ -60,11 +58,11 @@ class LSTM(Network):
             pretrained_bc=bc,
             pretrained_bo=bo,
             gate_nonlinearity=gate_activation_fn,
-            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation_fn, index) in list(model_params.values())[:-1] ] + [ 
+            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation_fn, index) in list(params.values())[:-1] ] + [ 
                 
             LSTMCell(
             pretrained=True, 
-            device_type=self.device_type,
+            device=self.device,
             type="output",
             pretrained_wf=wf,
             pretrained_wi=wi,
@@ -78,7 +76,7 @@ class LSTM(Network):
             pretrained_why=why,
             pretrained_by=by,
             output_nonlinearity=output_activation_fn,
-            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation_fn, why, by, output_activation_fn, index) in [list(model_params.values())[-1]] ]
+            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation_fn, why, by, output_activation_fn, index) in [list(params.values())[-1]] ]
         
         return layers
 
@@ -91,15 +89,16 @@ class LSTM(Network):
         output_activation_fn = architecture.get("output_activation_fn")
         output_feature_count = architecture.get("output_feature_count")
         num_layers = len(gate_neuron_counts)
+        input_feature_count = architecture.get("input_feature_count")
         
 
         layers = [
             
             LSTMCell(
             pretrained=False,
-            device_type=self.device_type,
+            device=self.device,
             type="hidden",
-            xt_input_count=self.input_feature_count if i == 0 else gate_neuron_counts[i-1],
+            xt_input_count=input_feature_count if i == 0 else gate_neuron_counts[i-1],
             ht1_input_count=gate_neuron_counts[i],
             gate_neuron_count=gate_neuron_counts[i],
             gate_activation_fn=gate_activation_fn,
@@ -107,9 +106,9 @@ class LSTM(Network):
 
             LSTMCell(
             pretrained=False,
-            device_type=self.device_type,
+            device=self.device,
             type="output",
-            xt_input_count=self.input_feature_count if num_layers == 1 else gate_neuron_counts[-2],
+            xt_input_count=input_feature_count if num_layers == 1 else gate_neuron_counts[-2],
             ht1_input_count=gate_neuron_counts[-1],
             gate_neuron_count=gate_neuron_counts[-1],
             gate_nonlinearity=gate_activation_fn,
@@ -121,24 +120,25 @@ class LSTM(Network):
         return layers
     
 
-    def save_parameters(self):
-        os.makedirs(f"{self.save_fpath}", exist_ok=True)
+    def save_parameters(self, qualifier=""):
+        save_fpath = f"{self.save_fpath}/{qualifier}"
+        os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
             #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.wf, f"{self.save_fpath}/layer_{layer.index}_wf_{layer.gate_nonlinearity}.pth")
-            torch.save(layer.wi, f"{self.save_fpath}/layer_{layer.index}_wi_{layer.gate_nonlinearity}.pth")
-            torch.save(layer.wc, f"{self.save_fpath}/layer_{layer.index}_wc_{layer.gate_nonlinearity}.pth")
-            torch.save(layer.wo, f"{self.save_fpath}/layer_{layer.index}_wo_{layer.gate_nonlinearity}.pth")
+            torch.save(layer.wf, f"{save_fpath}/layer_{layer.index}_wf_{layer.gate_nonlinearity}.pth")
+            torch.save(layer.wi, f"{save_fpath}/layer_{layer.index}_wi_{layer.gate_nonlinearity}.pth")
+            torch.save(layer.wc, f"{save_fpath}/layer_{layer.index}_wc_{layer.gate_nonlinearity}.pth")
+            torch.save(layer.wo, f"{save_fpath}/layer_{layer.index}_wo_{layer.gate_nonlinearity}.pth")
 
-            torch.save(layer.bf, f"{self.save_fpath}/layer_{layer.index}_bf.pth")
-            torch.save(layer.bi, f"{self.save_fpath}/layer_{layer.index}_bi.pth")
-            torch.save(layer.bc, f"{self.save_fpath}/layer_{layer.index}_bc.pth")
-            torch.save(layer.bo, f"{self.save_fpath}/layer_{layer.index}_bo.pth")
+            torch.save(layer.bf, f"{save_fpath}/layer_{layer.index}_bf.pth")
+            torch.save(layer.bi, f"{save_fpath}/layer_{layer.index}_bi.pth")
+            torch.save(layer.bc, f"{save_fpath}/layer_{layer.index}_bc.pth")
+            torch.save(layer.bo, f"{save_fpath}/layer_{layer.index}_bo.pth")
 
             if layer.type == "output":
-                torch.save(layer.why, f"{self.save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
-                torch.save(layer.by, f"{self.save_fpath}/layer_{layer.index}_by.pth")
+                torch.save(layer.why, f"{save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
+                torch.save(layer.by, f"{save_fpath}/layer_{layer.index}_by.pth")
 
 
 
@@ -150,13 +150,13 @@ class LSTM(Network):
         return [torch.zeros(
             size=(batch_size, layer.gate_neuron_count), 
             dtype=torch.float32, 
-            device=self.device_type) for layer in self.layers]
+            device=self.device) for layer in self.layers]
 
     def reset_cell_state(self, batch_size):
         return [torch.zeros(
             size=(batch_size, layer.gate_neuron_count), 
             dtype=torch.float32, 
-            device=self.device_type) for layer in self.layers]
+            device=self.device) for layer in self.layers]
 
 
     def calculate_state(self, x, ht1_i, Ct1_i, wf_i, bf_i, wi_i, bi_i, wc_i, bc_i, wo_i, bo_i ):
@@ -201,7 +201,7 @@ class LSTM(Network):
         by = self.layers[-1].by
 
         output_feature_count = by.shape[0]
-        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device_type)
+        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device)
 
         for t in range(T):
             x = X[:, t, :]
@@ -271,7 +271,7 @@ class LSTM(Network):
         by = self.layers[-1].by
 
         output_feature_count = by.shape[0]
-        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device_type)
+        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device)
 
         x = X[:, 0, :]
         for t in range(T):
@@ -305,6 +305,7 @@ class LSTM(Network):
             ht1_l = ht_l
 
             if training:
+                # 0 means fully autoregressive, 1 means fully teacher-forced
                 teacher_forcing_factor = (
                     self.epoch/self.epochs if (self.teacher_forcing == "progressive") # progressive teacher-forcing
                     else 1 - self.epoch/self.epochs if (self.teacher_forcing == "regressive") # regressive teacher-forcing

@@ -6,20 +6,17 @@ import os
 
 class MLP(Network):
 
-    def __init__(self, pretrained, training, device_type, **kwargs):
+    def __init__(self, pretrained, training, device, **kwargs):
 
         super().__init__(model_type="mlp", training=training, **kwargs)
 
-        self.device_type = torch.device(device_type)
+        self.device = torch.device(device)
         self.save_fpath = kwargs.get("save_fpath")
 
         if not pretrained:
-            architecture = kwargs.get("architecture")
-            self.input_feature_count = kwargs.get("input_feature_count")
-            self.check_config(architecture=architecture)
-            self.layers = self.build_layers(architecture=architecture) #or mlp_architecture.get("input_data_dim"))
+            self.layers = self.build_layers(kwargs.get("architecture"))
         else:
-            self.layers = self.load_layers(model_params=kwargs.get("model_params"))
+            self.layers = self.load_layers(kwargs.get("params"))
 
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
@@ -31,15 +28,15 @@ class MLP(Network):
 
 
 
-    def load_layers(self, model_params):
+    def load_layers(self, params):
         layers = [
             DenseLayer(
             pretrained=True, 
-            device_type=self.device_type, 
+            device=self.device, 
             pretrained_weights=weights, 
             pretrained_biases=biases, 
             nonlinearity=nonlinearity, 
-            index=index) for (weights, biases, nonlinearity, index) in model_params.values()
+            index=index) for (weights, biases, nonlinearity, index) in params.values()
         ]
 
         return layers
@@ -49,13 +46,15 @@ class MLP(Network):
 
         neuron_counts = architecture.get("neuron_counts")
         activation_fns = architecture.get("activation_fns")
-        neuron_counts = [self.input_feature_count] + neuron_counts
+        input_feature_count = architecture.get("input_feature_count")
+
+        neuron_counts = [input_feature_count] + neuron_counts
         num_layers = len(neuron_counts)-1
 
         layers = [
             DenseLayer(
             pretrained=False, 
-            device_type=self.device_type, 
+            device=self.device, 
             input_count=neuron_counts[i],
             neuron_count=neuron_counts[i+1], 
             nonlinearity=activation_fns[i], 
@@ -65,13 +64,13 @@ class MLP(Network):
         return layers
 
 
-    def save_parameters(self):
-        os.makedirs(f"{self.save_fpath}", exist_ok=True)
+    def save_parameters(self, qualifier=""):
+        save_fpath = f"{self.save_fpath}/{qualifier}"
+        os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
-            #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.weights, f"{self.save_fpath}/layer_{layer.index}_weights_{layer.nonlinearity}.pth")
-            torch.save(layer.biases, f"{self.save_fpath}/layer_{layer.index}_biases_{layer.nonlinearity}.pth")
+            torch.save(layer.weights, f"{save_fpath}/layer_{layer.index}_weights_{layer.nonlinearity}.pth")
+            torch.save(layer.biases, f"{save_fpath}/layer_{layer.index}_biases_{layer.nonlinearity}.pth")
 
 
 

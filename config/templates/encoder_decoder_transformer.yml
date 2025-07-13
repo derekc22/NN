@@ -1,0 +1,40 @@
+architecture:
+  ff_architecture:
+    activation_fns:
+    - # ff activation fn
+    - # ff activation_fn
+    neuron_counts:
+    - # ff neuron count
+    - # ff output neuron count; MUST MATCH d_model
+  transformer_architecture:
+    depth: # number of encoder/decoder layers
+    num_heads: # number of attention heads in each encoder/decoder block
+hyperparameters:
+  ff_hyperparameters:
+    dropout_rate: # 
+    lambda_L2: # 
+    learn_rate: # 
+    optimizer: # 
+  transformer_hyperparameters:
+    batch_size: # 
+    dropout_rate: # 
+    lambda_L2: # 
+    learn_rate: # 
+    loss_func: # typically CELoss
+    optimizer: # 
+    reduction: # 
+log_id: # leave blank
+parameters:
+  ff_save_fpath: # ./params/transformer/transformer_ff
+  transformer_save_fpath: # ./params/transformer
+specifications:
+  device: 
+  d_model: # model dimensionality
+  type: # encoder-decoder, encoder, or decoder
+test:
+  show_results: # 
+  test_dataset_size: # 
+train:
+  epochs: # 
+  show_loss_plot: # 
+  train_dataset_size: # 

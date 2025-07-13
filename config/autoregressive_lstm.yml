@@ -2,10 +2,11 @@ architecture:
   gate_activation_fn: sigmoid
   gate_neuron_counts:
   - 64
+  input_feature_count: 1
   output_activation_fn: none
   output_feature_count: 1
 hyperparameters:
-  batch_size: 64
+  batch_size: 32
   dropout_rate: null
   grad_clip_norm: 1
   grad_clip_value: null
@@ -14,18 +15,18 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-29_08:22:56_autoregressive_lstm
-save_fpath: ./params/lstm/autoregressive
-specs:
+log_id: logs/2025-07-13_12:53:05_autoregressive_lstm
+specifications:
   autoregressive: true
-  device_type: cpu
-  input_feature_count: 1
   stateful: false
   teacher_forcing: regressive
+system:
+  device: cpu
+  save_fpath: ./params/lstm/autoregressive
 test:
   show_results: true
   test_dataset_size: 50
 train:
-  epochs: 50000
+  epochs: 1000
   show_loss_plot: true
-  train_dataset_size: 50000
+  train_dataset_size: 500

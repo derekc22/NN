@@ -6,10 +6,10 @@ from utils.functions import activate
 
 class DenseLayer:
 
-    def __init__(self, pretrained, device_type, **kwargs):
+    def __init__(self, pretrained, **kwargs):
 
         self.index = int(kwargs.get("index"))
-        self.device_type = device_type
+        self.device = kwargs.get("device")
         self.nonlinearity = kwargs.get("nonlinearity")
 
         if not pretrained:
@@ -21,25 +21,25 @@ class DenseLayer:
             # self.weights = torch.rand(size=(neuron_count, input_count), dtype=torch.float32)  # Random Initialization
 
             # stddev = np.sqrt(2 / (input_count + neuron_count))
-            # self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32, device=self.device_type)  # Xavier Initialization
+            # self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32, device=self.device)  # Xavier Initialization
 
             stddev = np.sqrt(2 / input_count)
             # self.weights = torch.normal(0, stddev, size=(neuron_count, input_count), dtype=torch.float32)  # He Initialization
-            self.weights = torch.normal(0, stddev, size=(input_count, neuron_count), dtype=torch.float32, device=self.device_type)  # He Initialization
+            self.weights = torch.normal(0, stddev, size=(input_count, neuron_count), dtype=torch.float32, device=self.device)  # He Initialization
 
-            # self.biases = torch.zeros(size=(neuron_count, 1), dtype=torch.float32, device=self.device_type)
-            self.biases = torch.zeros(neuron_count, dtype=torch.float32, device=self.device_type)
+            # self.biases = torch.zeros(size=(neuron_count, 1), dtype=torch.float32, device=self.device)
+            self.biases = torch.zeros(neuron_count, dtype=torch.float32, device=self.device)
 
         else:
-            self.weights = kwargs.get("pretrained_weights").to(device=self.device_type)
-            self.biases = kwargs.get("pretrained_biases").to(device=self.device_type)
+            self.weights = kwargs.get("pretrained_weights").to(device=self.device)
+            self.biases = kwargs.get("pretrained_biases").to(device=self.device)
 
 
         self.weights.requires_grad_()
         self.biases.requires_grad_()
 
 
-        self.bn1 = nn.BatchNorm1d(num_features=self.weights.size(dim=1), dtype=torch.float32, device=self.device_type)
+        self.bn1 = nn.BatchNorm1d(num_features=self.weights.size(dim=1), dtype=torch.float32, device=self.device)
 
 
 

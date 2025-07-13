@@ -2,10 +2,11 @@ architecture:
   hidden_activation_fn: sigmoid
   hidden_state_neuron_counts:
   - 64
+  input_feature_count: 1
   output_activation_fn: none
   output_feature_count: 1
 hyperparameters:
-  batch_size: 64
+  batch_size: 32
   dropout_rate: null
   grad_clip_norm: null
   grad_clip_value: null
@@ -14,18 +15,18 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-23_21:43:19_autoregressive_rnn
-save_fpath: ./params/rnn/autoregressive
-specs:
+log_id: logs/2025-07-13_12:33:40_autoregressive_rnn
+specifications:
   autoregressive: true
-  device_type: cpu
-  input_feature_count: 1
   stateful: false
   teacher_forcing: regressive
+system:
+  device: cpu
+  save_fpath: ./params/rnn/autoregressive
 test:
   show_results: true
   test_dataset_size: 50
 train:
-  epochs: 10000
+  epochs: 1000
   show_loss_plot: true
-  train_dataset_size: 10000
+  train_dataset_size: 500

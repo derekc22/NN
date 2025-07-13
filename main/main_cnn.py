@@ -1,4 +1,3 @@
-
 from utils.data import *
 from utils.cnn_utils import *
 from utils.mlp_utils import fetch_mlp_params_from_file
@@ -12,24 +11,25 @@ parser.add_argument('--mode', type=str, help='Specify "train" or "test"')
 parser.add_argument('--pretrained', action="store_true", help='Specify if model is pretrained')
 args = parser.parse_args()
 
-
 config = load_config(args.config)
 log_id = config['log_id']
 
-specs = config["specs"]
-multi_out = specs["multi_out"]
-device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mode = args.mode #mode = specs["mode"]
-pretrained = args.pretrained #specs["pretrained"]
-input_data_dim = tuple(specs["input_data_dim"])
-color_channels, img_height, img_width = input_data_dim
+system = config["system"]
+device = system.get("device")
+cnn_save_fpath = system.get("save_fpath")
+mlp_save_fpath = system.get("mlp_save_fpath")
 
-parameters = config["parameters"]
-cnn_save_fpath = parameters["cnn_save_fpath"]
-mlp_save_fpath = parameters["mlp_save_fpath"]
+specifications = config["specifications"]
+multi_out = specifications["multi_out"]
+
 architecture = config["architecture"]
 cnn_architecture = architecture["cnn_architecture"]
 mlp_architecture = architecture["mlp_architecture"]
+color_channels, img_height, img_width = tuple(cnn_architecture["input_data_dim"])
+
+mode = args.mode
+pretrained = args.pretrained
+
 
 # Training mode
 if mode == "train":
@@ -40,11 +40,11 @@ if mode == "train":
     hyperparameters = config["hyperparameters"]
     cnn_hyperparameters = hyperparameters["cnn_hyperparameters"]
     mlp_hyperparameters = hyperparameters["mlp_hyperparameters"]
-    
+
     img_batch, label_batch = gen_pet_img_stack(
-        train_dataset_size, 
+        dataset_size=train_dataset_size, 
         use="train",
-        device_type=device_type,
+        device=device,
         img_height=img_height,
         img_width=img_width,
         color_channels=color_channels,
@@ -56,26 +56,27 @@ if mode == "train":
         cnn = CNN(
             pretrained=True,
             training=True,
-            device_type=device_type,
+            device=device,
+            params=fetch_cnn_params_from_file(device, cnn_save_fpath),
+            mlp_params=fetch_mlp_params_from_file(device, mlp_save_fpath),
             hyperparameters=cnn_hyperparameters,
             mlp_hyperparameters=mlp_hyperparameters,
-            model_params=fetch_cnn_params_from_file(device_type, cnn_save_fpath),
-            mlp_model_params=fetch_mlp_params_from_file(device_type, mlp_save_fpath),
             save_fpath=cnn_save_fpath,
             mlp_save_fpath=mlp_save_fpath,
+            specifications=specifications
         )
     else:
         cnn = CNN(
             pretrained=False,
             training=True,
-            device_type=device_type,
+            device=device,
+            architecture=cnn_architecture,
+            mlp_architecture=mlp_architecture,
             hyperparameters=cnn_hyperparameters,
             mlp_hyperparameters=mlp_hyperparameters,
-            architecture=cnn_architecture,#architecture["cnn_architecture"],
-            mlp_architecture=mlp_architecture,#architecture["mlp_architecture"],
-            input_data_dim=input_data_dim,
             save_fpath=cnn_save_fpath,
             mlp_save_fpath=mlp_save_fpath,
+            specifications=specifications
         )
 
     epoch_plt, loss_plt = cnn.train(
@@ -95,9 +96,9 @@ else:
     show_results = test_config["show_results"]
 
     img_batch, label_batch = gen_pet_img_stack(
-        test_dataset_size,
+        dataset_size=test_dataset_size,
         use="test",
-        device_type=device_type,
+        device=device,
         img_height=img_height,
         img_width=img_width,
         color_channels=color_channels,
@@ -108,9 +109,10 @@ else:
     cnn = CNN(
         pretrained=True,
         training=False,
-        device_type=device_type,
-        model_params=fetch_cnn_params_from_file(device_type, cnn_save_fpath), #parameters["cnn_save_fpath"]),
-        mlp_model_params=fetch_mlp_params_from_file(device_type, mlp_save_fpath) #parameters["mlp_save_fpath"]),
+        device=device,
+        params=fetch_cnn_params_from_file(device, cnn_save_fpath),
+        mlp_params=fetch_mlp_params_from_file(device, mlp_save_fpath),
+        specifications=specifications
     )
 
     prediction_batch = cnn.inference(img_batch)
@@ -134,5 +136,4 @@ else:
             color_channels=color_channels,
             show_images=show_results
         )
-
-
+        

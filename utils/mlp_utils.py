@@ -4,9 +4,9 @@ import glob, os, re
 
 
 
-def fetch_mlp_params_from_file(device_type, directory):
+def fetch_mlp_params_from_file(device, directory):
 
-    model_params = {}
+    params = {}
 
     # Use glob to get all files matching the pattern
     weight_pattern = "layer_*_weights_*.pth"  # Pattern to match
@@ -20,8 +20,8 @@ def fetch_mlp_params_from_file(device_type, directory):
 
     for (w_file, b_file) in zip(weight_files, bias_files):
 
-        weights = torch.load(w_file, map_location=device_type)
-        biases = torch.load(b_file, map_location=device_type)
+        weights = torch.load(w_file, map_location=device)
+        biases = torch.load(b_file, map_location=device)
 
         regex_pattern = r"layer_(\d+)_weights_(.*?)\.pth"
         match = re.search(regex_pattern, w_file)
@@ -29,9 +29,9 @@ def fetch_mlp_params_from_file(device_type, directory):
         index = match.group(1)
         activation = match.group(2)
 
-        model_params.update({f"Layer {index}": [weights, biases, activation, index] })
+        params.update({f"Layer {index}": [weights, biases, activation, index] })
 
-    return model_params
+    return params
 
 
 
