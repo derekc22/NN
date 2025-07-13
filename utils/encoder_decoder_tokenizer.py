@@ -16,7 +16,6 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
-        # pass
         return x + self.pe[:, :x.size(1)]  # (B, S, D)
 
 # Input preprocessor for seq2seq generation
@@ -48,7 +47,6 @@ class Seq2SeqInputPreprocessor(nn.Module):
         }
 
     def forward(self, input_ids, decoder_input_ids):
-        # pass
         src_emb = self.positional_encoding(self.embedding(input_ids))              # (B, S_src, D)
         tgt_emb = self.positional_encoding(self.embedding(decoder_input_ids))      # (B, S_tgt, D)
         return src_emb, tgt_emb

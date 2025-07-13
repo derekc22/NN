@@ -1,36 +1,31 @@
-specs:
-  device_type: "cpu"
+architecture:
+  hidden_activation_fn: tanh
+  hidden_state_neuron_counts:
+  - 64
   input_feature_count: 100
+  output_activation_fn: reLU
+  output_feature_count: 100
+hyperparameters:
+  batch_size: 32
+  dropout_rate: null
+  grad_clip_norm: null
+  grad_clip_value: null
+  lambda_L2: null
+  learn_rate: 0.01
+  loss_func: MSELoss
+  optimizer: adam
+  reduction: mean
+log_id: logs/2025-07-13_13:04:36_text_rnn
+specifications:
+  autoregressive: false
   stateful: false
-
-#------------------------------------------------------------------------------------------------------------------------
+system:
+  device: cpu
+  save_fpath: ./params/rnn/text
+test:
+  show_results: false
+  test_dataset_size: 5
 train:
   epochs: 30000
-  train_dataset_size: 25
   show_loss_plot: true
-
-hyperparameters:
-    learn_rate: 0.01   
-    batch_size: 4
-    loss_func: "MSELoss"
-    reduction: "mean"
-    optimizer: "adam"
-    lambda_L2: ~ #0.000006
-    dropout_rate: ~
-
-architecture:
-    # hidden_state_neuron_counts: [16, 32, 64]
-    # hidden_state_neuron_counts: [2, 4, 6]
-    # hidden_state_neuron_counts: [4, 8]
-    # hidden_state_neuron_counts: [16]
-    output_feature_count: 100
-    hidden_activation_fn: "tanh"
-    output_activation_fn: "reLU"
-
-#------------------------------------------------------------------------------------------------------------------------
-test:
-  test_dataset_size: 5
-
-
-save_fpath: "./params/paramsRNN"
-
+  train_dataset_size: 25

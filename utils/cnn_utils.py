@@ -151,7 +151,7 @@ def get_pet_img_tensor(transform, use):
 
 
 
-def gen_pet_img_stack(dataset_size, use, device_type, img_height, img_width, multi_out, save, color_channels):
+def gen_pet_img_stack(dataset_size, use, device, img_height, img_width, multi_out, save, color_channels):
 
 
     # Create dataset transformation
@@ -206,9 +206,9 @@ def gen_pet_img_stack(dataset_size, use, device_type, img_height, img_width, mul
 
 
 
-def fetch_cnn_params_from_file(device_type, directory):
+def fetch_cnn_params_from_file(device, directory):
 
-    model_params = {}
+    params = {}
 
     # Use glob to get all files matching the pattern
     kernel_pattern = "cnn_layer_*_kernels_*_*_*.pth"  # Pattern to match
@@ -224,8 +224,8 @@ def fetch_cnn_params_from_file(device_type, directory):
 
     for (k_file, b_file) in zip(kernel_files, bias_files):
 
-        kernels = torch.load(k_file, map_location=device_type)
-        biases = torch.load(b_file, map_location=device_type)
+        kernels = torch.load(k_file, map_location=device)
+        biases = torch.load(b_file, map_location=device)
 
         match = re.search(regex_pattern, k_file)
 
@@ -234,6 +234,6 @@ def fetch_cnn_params_from_file(device_type, directory):
         layer_type = match.group(3)
         stride = match.group(4)
 
-        model_params.update({f"CNN Layer {index}": [layer_type, kernels, biases, activation, stride, index] })
+        params.update({f"CNN Layer {index}": [layer_type, kernels, biases, activation, stride, index] })
 
-    return model_params
+    return params

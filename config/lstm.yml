@@ -2,6 +2,7 @@ architecture:
   gate_activation_fn: sigmoid
   gate_neuron_counts:
   - 64
+  input_feature_count: 1
   output_activation_fn: none
   output_feature_count: 1
 hyperparameters:
@@ -14,13 +15,13 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-29_08:21:34_lstm
-save_fpath: ./params/lstm/vanilla
-specs:
+log_id: logs/2025-07-13_12:51:41_lstm
+specifications:
   autoregressive: false
-  device_type: cpu
-  input_feature_count: 1
   stateful: false
+system:
+  device: cpu
+  save_fpath: ./params/lstm/vanilla
 test:
   show_results: true
   test_dataset_size: 50

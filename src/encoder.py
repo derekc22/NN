@@ -8,97 +8,64 @@ from models.mlp import MLP
 
 class Encoder:
 
-    def __init__(self, pretrained, device_type, **kwargs):
+    def __init__(self, pretrained, **kwargs):
 
         self.index = int(kwargs.get("index"))
-        self.device_type = device_type
+        self.device = kwargs.get("device")
         self.component = "encoder"
 
         if not pretrained:
             
-            self.d_model = kwargs.get("embedding_size") #  AKA model dimension AKA d_model
+            self.d_model = kwargs.get("d_model") #  AKA model dimension AKA d_model
             self.h = kwargs.get("num_heads")
             
             assert (self.d_model > self.h and self.d_model % self.h == 0)
             self.dk = int(self.d_model/self.h)
-            self.sqrt_dk = self.dk**0.5
+            self.sqrt_dk = np.sqrt(self.dk)
 
-            stddev_model = np.sqrt(2 / self.d_model)
-            
-            self.WQ = torch.normal(
-                0, stddev_model,
-                size=(self.h, self.d_model, self.dk),
+            stddev = np.sqrt(2 / self.d_model)
+
+            self.WQKV = torch.normal(
+                0, stddev / np.sqrt(3.0),
+                size=(self.d_model, 3 * self.h * self.dk), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
-                device=self.device_type)
-            
-            self.WK = torch.normal(
-                0, stddev_model,
-                size=(self.h, self.d_model, self.dk),
-                dtype=torch.float32,
-                device=self.device_type)
-            
-            self.WV = torch.normal(
-                0, stddev_model,
-                size=(self.h, self.d_model, self.dk),
-                dtype=torch.float32,
-                device=self.device_type)
-            
+                device=self.device)
+
             self.WO = torch.normal(
-                0, stddev_model,
+                0, stddev,
                 size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
-                device=self.device_type)
+                device=self.device)
             
-            ff_neuron_count = kwargs.get("ff_neuron_count") # typically 2048 or 4096
-            ff_nonlinearity = kwargs.get("ff_nonlinearity") # typically reLU or GELU
+            self.ff = MLP(**kwargs.get("ff_config"))
             
-            # self.ff_layers = [
-            #     DenseLayer(
-            #         pretrained=pretrained,
-            #         device_type=device_type,
-            #         nonlinearity=ff_nonlinearity,
-            #         input_count=self.d_model,
-            #         neuron_count=ff_neuron_count,
-            #         index=1
-            #     ),
-            #     DenseLayer(
-            #         pretrained=pretrained,
-            #         device_type=device_type,
-            #         nonlinearity="none",
-            #         input_count=ff_neuron_count,
-            #         neuron_count=self.d_model,
-            #         index=2
-            #     )
-            # ]
-            
-            # print(kwargs.get("ff_architecture"))
-            # exit()
-            self.ff = MLP(pretrained=False, 
-                          device_type=self.device_type, 
-                          training=True, 
-                          input_feature_count=self.d_model, 
-                          architecture=kwargs.get("ff_architecture"), 
-                          hyperparameters=kwargs.get("ff_hyperparameters"), 
-                          save_fpath=kwargs.get("ff_save_fpath")
-                        )
-            
-        self.padding_mask = kwargs.get("padding_mask")
-
-        self.WQ.requires_grad_()
-        self.WK.requires_grad_()
-        self.WV.requires_grad_()
+        else:
+            pass
+        
+        self.WQKV.requires_grad_()
         self.WO.requires_grad_()
 
         self.ln_1 = nn.LayerNorm(self.d_model)
         self.ln_2 = nn.LayerNorm(self.d_model)
 
+        self.padding_mask = kwargs.get("padding_mask")
 
 
+    # def compute_QKV(self, X):
+    #     # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
+    #     Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
+    #     K = torch.einsum("bse,hek->bhsk", X, self.WK)
+    #     V = torch.einsum("bse,hek->bhsk", X, self.WV)
+    #     return Q, K, V
+    
     def compute_QKV(self, X):
-        # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
-        Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
-        K = torch.einsum("bse,hek->bhsk", X, self.WK)
-        V = torch.einsum("bse,hek->bhsk", X, self.WV)
+        # b = batch_dim, s = seq_len, d = d_model, h = num_heads, k = 3 * h * d
+        QKV = torch.einsum('bsd, dk->bsk', X, self.WQKV)  # single Einsum = one GEMM
+        Q, K, V = QKV.chunk(3, dim=-1)
+        batch_size, seq_len = X.shape[:2]
+        Q = Q.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
+        K = K.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
+        V = V.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
         return Q, K, V
 
 
@@ -176,21 +143,21 @@ class Encoder:
         return ZNorm2
 
 
-if __name__ == "__main__":
-    batch_size_ = 2
-    sequence_len = 3
-    embedding_size = 4
-    num_heads = 2
+# if __name__ == "__main__":
+#     batch_size_ = 2
+#     sequence_len = 3
+#     d_model = 4
+#     num_heads = 2
     
-    x = torch.rand(size=(batch_size_, sequence_len, embedding_size))
-    # x = torch.rand(size=(seq_len, embedding_size))
+#     x = torch.rand(size=(batch_size_, sequence_len, d_model))
+#     # x = torch.rand(size=(seq_len, d_model))
 
-    encoder = Encoder(
-        pretrained=False, 
-        device_type="cpu", 
-        embedding_size=embedding_size, 
-        num_heads=num_heads,
-        ff_neuron_count=3,
-        ff_nonlinearity="GELU"
-    )
-    encoder.feed(x)
+#     encoder = Encoder(
+#         pretrained=False, 
+#         device="cpu", 
+#         d_model=d_model, 
+#         num_heads=num_heads,
+#         ff_neuron_count=3,
+#         ff_nonlinearity="GELU"
+#     )
+#     encoder.feed(x)

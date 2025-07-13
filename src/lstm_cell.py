@@ -6,10 +6,10 @@ import numpy as np
 
 class LSTMCell():
 
-    def __init__(self, pretrained, device_type, **kwargs):
+    def __init__(self, pretrained, **kwargs):
 
         self.index = int(kwargs.get("index"))
-        self.device_type = device_type
+        self.device = kwargs.get("device")
         self.gate_nonlinearity = kwargs.get("gate_nonlinearity")
         self.why_nonlinearity = kwargs.get("output_nonlinearity")
         self.type = kwargs.get("type")
@@ -27,30 +27,30 @@ class LSTMCell():
                 0, stddev_wgate, 
                 size=(ht1_input_count + xt_input_count , gate_neuron_count), 
                 dtype=torch.float32, 
-                device=self.device_type)  # Xavier Initialization
+                device=self.device)  # Xavier Initialization
             
             self.wi = torch.normal(
                 0, stddev_wgate, 
                 size=(ht1_input_count + xt_input_count , gate_neuron_count), 
                 dtype=torch.float32, 
-                device=self.device_type)  # Xavier Initialization
+                device=self.device)  # Xavier Initialization
             
             self.wc = torch.normal(
                 0, stddev_wgate, 
                 size=(ht1_input_count + xt_input_count , gate_neuron_count), 
                 dtype=torch.float32, 
-                device=self.device_type)  # Xavier Initialization
+                device=self.device)  # Xavier Initialization
             
             self.wo = torch.normal(
                 0, stddev_wgate, 
                 size=(ht1_input_count + xt_input_count , gate_neuron_count), 
                 dtype=torch.float32, 
-                device=self.device_type)  # Xavier Initialization
+                device=self.device)  # Xavier Initialization
             
-            self.bf = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device_type)
-            self.bi = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device_type)
-            self.bc = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device_type)
-            self.bo = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device_type)
+            self.bf = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device)
+            self.bi = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device)
+            self.bc = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device)
+            self.bo = torch.zeros(gate_neuron_count, dtype=torch.float32, device=self.device)
        
 
             if self.type == "output":
@@ -61,26 +61,26 @@ class LSTMCell():
                     0, stddev_why,
                     size=(gate_neuron_count, why_neuron_count), 
                     dtype=torch.float32, 
-                    device=self.device_type)  # Xavier Initialization
+                    device=self.device)  # Xavier Initialization
 
-                self.by = torch.zeros(1, why_neuron_count, dtype=torch.float32, device=self.device_type)
+                self.by = torch.zeros(1, why_neuron_count, dtype=torch.float32, device=self.device)
 
 
         else:
-            self.wf = kwargs.get("pretrained_wf").to(device=self.device_type)
+            self.wf = kwargs.get("pretrained_wf").to(device=self.device)
             gate_neuron_count = self.wf.shape[-1]
-            self.wi = kwargs.get("pretrained_wi").to(device=self.device_type)
-            self.wc = kwargs.get("pretrained_wc").to(device=self.device_type)
-            self.wo = kwargs.get("pretrained_wo").to(device=self.device_type)
+            self.wi = kwargs.get("pretrained_wi").to(device=self.device)
+            self.wc = kwargs.get("pretrained_wc").to(device=self.device)
+            self.wo = kwargs.get("pretrained_wo").to(device=self.device)
             
-            self.bf = kwargs.get("pretrained_bf").to(device=self.device_type)
-            self.bi = kwargs.get("pretrained_bi").to(device=self.device_type)
-            self.bc = kwargs.get("pretrained_bc").to(device=self.device_type)
-            self.bo = kwargs.get("pretrained_bo").to(device=self.device_type)
+            self.bf = kwargs.get("pretrained_bf").to(device=self.device)
+            self.bi = kwargs.get("pretrained_bi").to(device=self.device)
+            self.bc = kwargs.get("pretrained_bc").to(device=self.device)
+            self.bo = kwargs.get("pretrained_bo").to(device=self.device)
 
             if self.type == "output":
-                self.why = kwargs.get("pretrained_why").to(device=self.device_type)
-                self.by = kwargs.get("pretrained_by").to(device=self.device_type)
+                self.why = kwargs.get("pretrained_why").to(device=self.device)
+                self.by = kwargs.get("pretrained_by").to(device=self.device)
 
         self.gate_neuron_count = gate_neuron_count
 
@@ -106,12 +106,12 @@ class LSTMCell():
         self.ht1 = torch.zeros(
         batch_size, self.gate_neuron_count, 
         dtype=torch.float32, 
-        device=self.device_type)
+        device=self.device)
         
         self.Ct1 = torch.zeros(
         batch_size, self.gate_neuron_count, 
         dtype=torch.float32, 
-        device=self.device_type)
+        device=self.device)
 
 
 

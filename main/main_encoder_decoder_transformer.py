@@ -1,11 +1,9 @@
 import torch
 from utils.data import *
-# from utils.ff_utils import *
 from utils.logger import load_config
 from models.transformer import Transformer
-import argparse
 from utils.encoder_decoder_tokenizer import Seq2SeqInputPreprocessor  
-
+import argparse
 
 parser = argparse.ArgumentParser(description='Set run options')
 parser.add_argument('--config', type=str, help='Specify config location')
@@ -16,18 +14,21 @@ args = parser.parse_args()
 config = load_config(args.config)
 log_id = config['log_id']
 
-specs = config["specs"]
-device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mode = args.mode #specs["mode"]
-pretrained = args.pretrained #specs["pretrained"]
-input_feature_count = specs["input_feature_count"]
+system = config["system"]
+device = system["device"]
+save_fpath = system["save_fpath"]
 
-parameters = config["parameters"]
-transformer_save_fpath = parameters["transformer_save_fpath"]
-ff_save_fpath = parameters["ff_save_fpath"]
+specifications = config["specifications"]
+context_window = specifications["context_window"]
+sequence_length = specifications["sequence_length"]
+
 architecture = config["architecture"]
 transformer_architecture = architecture["transformer_architecture"]
 ff_architecture = architecture["ff_architecture"]
+d_model = transformer_architecture["d_model"]
+
+mode = args.mode
+pretrained = args.pretrained
 
 
 # Training mode
@@ -40,13 +41,9 @@ if mode == "train":
     transformer_hyperparameters = hyperparameters["transformer_hyperparameters"]
     ff_hyperparameters = hyperparameters["ff_hyperparameters"]
     
-    # input_embedding = torch.rand(size=(5, 10, input_feature_count))
-    # output_embedding = torch.rand(size=(5, 10, input_feature_count))
-    
-
     # Usage
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    preprocessor = Seq2SeqInputPreprocessor("bert-base-uncased", input_feature_count).to(device)
+    preprocessor = Seq2SeqInputPreprocessor("bert-base-uncased", d_model, context_window).to(device)
 
     # Replace with your actual dataset
     source_texts = [
@@ -60,7 +57,7 @@ if mode == "train":
     ]
 
     # Tokenize and prepare inputs
-    batch = preprocessor.tokenize(source_texts, target_texts, max_length=64)
+    batch = preprocessor.tokenize(source_texts, target_texts, max_length=sequence_length)
 
     input_ids = batch["input_ids"].to(device)
     attention_mask = batch["attention_mask"].to(device)
@@ -80,41 +77,27 @@ if mode == "train":
     #     labels                     # (B, S_tgt)
     # )
 
-    transformer_architecture["encoder_padding_mask"] = attention_mask
-    transformer_architecture["decoder_padding_mask"] = decoder_attention_mask
-    transformer_architecture["vocab_size"] = preprocessor.vocab_size
-    
-
+    specifications["encoder_padding_mask"] = attention_mask
+    specifications["decoder_padding_mask"] = decoder_attention_mask
+    specifications["tokenizer"] = preprocessor
 
     if pretrained:
         pass
-        # ff = ff(
-        #     pretrained=True,
-        #     training=True,
-        #     device_type=device_type,
-        #     hyperparameters=hyperparameters,
-        #     model_params=fetch_ff_params_from_file(device_type, save_fpath),
-        #     save_fpath=save_fpath,
-        # )
+
     else:
         transformer = Transformer(
             pretrained=False,
             training=True,
-            device_type=device_type,
-            hyperparameters=transformer_hyperparameters,
-            ff_hyperparameters=ff_hyperparameters,
+            device=device,
             architecture=transformer_architecture,
             ff_architecture=ff_architecture,
-            input_feature_count=input_feature_count,
-            save_fpath=transformer_save_fpath,
-            ff_save_fpath=ff_save_fpath,
-            tokenizer=preprocessor
+            hyperparameters=transformer_hyperparameters,
+            ff_hyperparameters=ff_hyperparameters,
+            save_fpath=save_fpath,
+            specifications=specifications
         )
 
-    # print(src_emb.shape)
-    # print(tgt_emb.shape)
-    # print(preprocessor.pad_token_id)
-    # exit()
+
     epoch_plt, loss_plt = transformer.train(
         src_emb=src_emb.detach(), 
         tgt_emb=tgt_emb.detach(), 
@@ -128,19 +111,3 @@ if mode == "train":
 
 # Testing mode
 # else:
-#     test_config = config["test"]
-#     test_dataset_size = test_config["test_dataset_size"]
-#     show_results = test_config["show_results"]
-
-#     data_batch, label_batch = gen_matrix_stack(test_dataset_size, int(input_feature_count**(1/2)))
-
-#     ff = ff(
-#         pretrained=True,
-#         training=False,
-#         device_type=device_type,
-#         model_params=fetch_ff_params_from_file(device_type, save_fpath),
-#     )
-
-#     prediction_batch = ff.inference(data_batch)
-#     print_classification_results(test_dataset_size, prediction_batch, label_batch)
-

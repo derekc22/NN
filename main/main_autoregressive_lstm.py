@@ -5,7 +5,6 @@ from utils.lstm_utils import *
 from utils.logger import load_config
 from models.lstm import LSTM
 import numpy as np
-import matplotlib.pyplot as plt
 import argparse
 
 parser = argparse.ArgumentParser(description='Set run options')
@@ -14,26 +13,25 @@ parser.add_argument('--mode', type=str, help='Specify "train" or "test"')
 parser.add_argument('--pretrained', action="store_true", help='Specify if model is pretrained')
 args = parser.parse_args()
 
-
 config = load_config(args.config)
 log_id = config['log_id']
 
-specs = config["specs"]
-device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mode = args.mode #specs["mode"]
-pretrained = args.pretrained #specs["pretrained"]
-input_feature_count = specs["input_feature_count"]
-# time_steps = specs["time_steps"]
-stateful = specs["stateful"]
-autoregressive = specs["autoregressive"]
-teacher_forcing = specs["teacher_forcing"]
+system = config["system"]
+device = system["device"]
+save_fpath = system["save_fpath"]
 
-save_fpath = config["save_fpath"]
+specifications = config["specifications"]
+stateful = specifications["stateful"]
+autoregressive = specifications["autoregressive"]
+
 architecture = config["architecture"]
+
+mode = args.mode
+pretrained = args.pretrained
 
 freq = 5
 amp = 1
-time_steps = 150
+time_steps = 10
 T = 2*np.pi
 
 # Training mode
@@ -48,34 +46,28 @@ if mode == "train":
         lstm = LSTM(
             pretrained=True,
             training=True,
-            device_type=device_type,
+            device=device,
+            params=fetch_lstm_params_from_file(device, save_fpath),
             hyperparameters=hyperparameters,
-            model_params=fetch_lstm_params_from_file(device_type, save_fpath),
-            stateful=stateful,
-            autoregressive=autoregressive,
-            teacher_forcing=teacher_forcing,
             save_fpath=save_fpath,
+            specifications=specifications
         )
         
     else:
         lstm = LSTM(
             pretrained=False,
             training=True,
-            device_type=device_type,
-            hyperparameters=hyperparameters,
+            device=device,
             architecture=architecture,
-            input_feature_count=input_feature_count,
-            stateful=stateful,
-            autoregressive=autoregressive,
-            teacher_forcing=teacher_forcing,
+            hyperparameters=hyperparameters,
             save_fpath=save_fpath,
+            specifications=specifications
         )
         
     t, X = gen_sine_wave(time_steps, freq, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     # t, X = gen_decaying_sine_wave(time_steps, -1, amp, T, train_dataset_size, vary_dt=False, vary_phase=False, add_noise=False)
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
-
 
     epoch_plt, loss_plt = lstm.train(
         data=data_batch, 
@@ -100,14 +92,12 @@ else:
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
 
-
     lstm = LSTM(
         pretrained=True,
         training=False,
-        device_type=device_type,
-        model_params=fetch_lstm_params_from_file(device_type, save_fpath),
-        stateful=stateful,
-        autoregressive=autoregressive
+        device=device,
+        params=fetch_lstm_params_from_file(device, save_fpath),
+        specifications=specifications
     )
 
     prediction_batch = lstm.inference(data_batch)

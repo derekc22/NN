@@ -3,6 +3,7 @@ architecture:
   - leakyReLU
   - leakyReLU
   - leakyReLU
+  input_feature_count: 9
   neuron_counts:
   - 64
   - 64
@@ -15,14 +16,14 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-06-30_00:52:04_mlp
-save_fpath: ./params/mlp
-specs:
-  device_type: cpu
-  input_feature_count: 9
+log_id: logs/2025-07-13_11:09:55_mlp
+specifications: null
+system:
+  device: cpu
+  save_fpath: ./params/mlp
 test:
   test_dataset_size: 100
 train:
-  epochs: 500
+  epochs: 600
   show_loss_plot: true
   train_dataset_size: 500

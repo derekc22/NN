@@ -9,7 +9,7 @@ from utils.functions import activate
 class CNNLayer:
 
 
-    def __init__(self, pretrained, device_type, **kwargs):
+    def __init__(self, pretrained, device, **kwargs):
 
         # self.is_conv_layer = is_conv_layer
         self.type = kwargs.get("type")
@@ -19,7 +19,7 @@ class CNNLayer:
         self.kernel_stride = int(kwargs.get("kernel_stride"))
 
 
-        self.device_type = device_type
+        self.device = device
 
 
 
@@ -29,13 +29,13 @@ class CNNLayer:
 
             # Random Initialization
             # dim=0 is set to 1, allowing the kernel to expand to match the batch size of the input image
-            # self.kernels = torch.rand(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32, device=self.device_type) if is_conv_layer else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32, device=self.device_type)
+            # self.kernels = torch.rand(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32, device=self.device) if is_conv_layer else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32, device=self.device)
 
             # He Initialization
             feature_count = self.filter_count * self.kernel_height * self.kernel_width
             stddev = np.sqrt(2 / feature_count)
             self.kernels = torch.normal(0, stddev, size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32) if self.type == "convolutional" else torch.empty(size=(1, self.filter_count, self.kernel_height, self.kernel_width), dtype=torch.float32)
-            self.biases = torch.rand(size=(1, self.filter_count, 1), dtype=torch.float32, device=self.device_type) if self.type == "convolutional" else None
+            self.biases = torch.rand(size=(1, self.filter_count, 1), dtype=torch.float32, device=self.device) if self.type == "convolutional" else None
 
         else:
             self.kernels = kwargs.get("pretrained_kernels")
@@ -47,7 +47,7 @@ class CNNLayer:
             self.biases.requires_grad_()
 
 
-        self.bn2 = nn.BatchNorm2d(num_features=self.filter_count, dtype=torch.float32, device=self.device_type)
+        self.bn2 = nn.BatchNorm2d(num_features=self.filter_count, dtype=torch.float32, device=self.device)
 
 
         # print(self.kernels.device)
@@ -84,7 +84,7 @@ class CNNLayer:
             img_batch_size, img_channel_count, -1, self.kernel_height, self.kernel_width)
             
         # num_slices = img_slices_stack.size(dim=2)
-        # img_slices_stack = img_slices_stack.to(self.device_type)
+        # img_slices_stack = img_slices_stack.to(self.device)
 
 
         result = func(img_slices_stack)
@@ -114,7 +114,7 @@ class CNNLayer:
             feature_map = activate(feature_map, self.nonlinearity)
 
 
-        # feature_map = feature_map.to(self.device_type)
+        # feature_map = feature_map.to(self.device)
 
 
         return feature_map

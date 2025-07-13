@@ -12,20 +12,22 @@ from typing_extensions import override
 
 class Transformer(Network):
 
-    def __init__(self, pretrained, device_type, training, **kwargs):
-        
+    def __init__(self, pretrained, training, device, **kwargs):
+                
         super().__init__(model_type="transformer", training=training, **kwargs)
-
-        self.device_type = torch.device(device_type)
-        self.type = kwargs.get("type", "encoder-decoder") # options are: encoder, decoder, encoder-decoder (ie default option)
-        self.tokenizer = kwargs.get("tokenizer")
+        
+        self.device = torch.device(device)
         self.save_fpath = kwargs.get("save_fpath")
-        ff_save_fpath = kwargs.get("ff_save_fpath")
-
+        
+        specifications = kwargs.get("specifications")
+        self.type = specifications.get("type") # options are: encoder, decoder, encoder-decoder (ie default option)
+        self.tokenizer = specifications.get("tokenizer")
+        
         if not pretrained:
-            architecture = kwargs.get("architecture")
-            self.input_feature_count = kwargs.get("input_feature_count")
-            self.layers, self.encoders, self.decoders = self.build_layers(architecture, kwargs.get("ff_architecture"), kwargs.get("ff_hyperparameters"), ff_save_fpath)
+            self.layers, self.encoders, self.decoders = self.build_layers(
+                kwargs.get("architecture"), 
+                self.init_ff(pretrained, training, **kwargs)
+            )
             
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
@@ -35,29 +37,39 @@ class Transformer(Network):
             self.set_optimizer()
 
 
+    def init_ff(self, pretrained, training, **kwargs):
+        if not pretrained:
+            ff_architecture = kwargs.get("ff_architecture")
+            ff_architecture["input_feature_count"] = kwargs.get("architecture").get("d_model")
+            return {
+                "pretrained": False,
+                "training": training,
+                "device": self.device,
+                "architecture": ff_architecture,
+                "hyperparameters": kwargs.get("ff_hyperparameters"),
+                "save_fpath": kwargs.get("save_fpath"),
+                "specifications": None,
+            }
 
-    def build_layers(self, architecture, ff_architecture, ff_hyperparameters, ff_save_fpath):
+
+    def build_layers(self, architecture, ff_config):
         
         num_heads = architecture.get("num_heads")
-        # ff_neuron_count = architecture.get("ff_neuron_count")
-        # ff_activation_fn = architecture.get("ff_activation_fn")
         depth = architecture.get("depth")
-        vocab_size = architecture.get("vocab_size")
+        vocab_size = self.tokenizer.vocab_size
         encoder_padding_mask = architecture.get("encoder_padding_mask")
         decoder_padding_mask = architecture.get("decoder_padding_mask")
+        d_model = architecture.get("d_model")
+        
         
         encoders = [
             Encoder(
             pretrained=False,
-            device_type=self.device_type,
-            embedding_size=self.input_feature_count,
+            device=self.device,
+            d_model=d_model,
             num_heads=num_heads,
-            # ff_neuron_count=ff_neuron_count,
-            # ff_nonlinearity=ff_activation_fn,
-            ff_architecture=ff_architecture,
-            ff_hyperparameters=ff_hyperparameters,
-            ff_save_fpath=ff_save_fpath,
             padding_mask=encoder_padding_mask,
+            ff_config=ff_config,
             index=i+1) for i in range(depth)
         ]
         
@@ -65,32 +77,24 @@ class Transformer(Network):
             
             Decoder(
             pretrained=False,
-            device_type=self.device_type,
+            device=self.device,
             type="hidden",
-            embedding_size=self.input_feature_count,
+            d_model=d_model,
             num_heads=num_heads,
-            # ff_neuron_count=ff_neuron_count,
-            # ff_nonlinearity=ff_activation_fn,
-            ff_architecture=ff_architecture,
-            ff_hyperparameters=ff_hyperparameters,
-            ff_save_fpath=ff_save_fpath,
             padding_mask=decoder_padding_mask,
-            index=i+1) for i in range(depth-1) ] + [
+            ff_config=ff_config,
+            index=i+1) for i in range(depth, 2*depth-1) ] + [
             
             Decoder(
             pretrained=False,
-            device_type=self.device_type,
+            device=self.device,
             type="output",
-            embedding_size=self.input_feature_count,
+            d_model=d_model,
             num_heads=num_heads,
-            # ff_neuron_count=ff_neuron_count,
-            # ff_nonlinearity=ff_activation_fn,
-            ff_architecture=ff_architecture,
-            ff_hyperparameters=ff_hyperparameters,
-            ff_save_fpath=ff_save_fpath,
             padding_mask=decoder_padding_mask,
             vocab_size=vocab_size,
-            index=depth)
+            ff_config=ff_config,
+            index=2*depth)
         
         ]
         
@@ -99,37 +103,113 @@ class Transformer(Network):
         return layers, encoders, decoders
 
 
-    # def save_parameters(self):
-    #     os.makedirs(f"{self.save_fpath}", exist_ok=True)
-    #     for layer in self.layers:
-    #         layer.index = str(layer.index).zfill(2)
-    #         torch.save(layer.WQ, f"{self.save_fpath}/layer_{layer.index}_WQ.pth")
-    #         torch.save(layer.WK, f"{self.save_fpath}/layer_{layer.index}_WK.pth")
-    #         torch.save(layer.WQ, f"{self.save_fpath}/layer_{layer.index}_WQ.pth")
-    #         torch.save(layer.WQ, f"{self.save_fpath}/layer_{layer.index}_WQ.pth")
+    def save_parameters(self, qualifier=""):
+        save_fpath = f"{self.save_fpath}/{qualifier}"
+        os.makedirs(save_fpath, exist_ok=True)
+        for layer in self.layers:
+            layer.index = str(layer.index).zfill(2)
+                
+            if layer.component == "encoder":
+                torch.save(layer.WQKV, f"{save_fpath}/encoder_{layer.index}_WQKV.pth")
+            if layer.component == "decoder":
+                torch.save(layer.WQKV_masked, f"{save_fpath}/decoder_{layer.index}_WQKV_masked.pth")
+                torch.save(layer.WO_masked, f"{save_fpath}/decoder_{layer.index}_WO_masked.pth")
+                torch.save(layer.WQ, f"{save_fpath}/decoder_{layer.index}_WQ.pth")
+                torch.save(layer.WKV, f"{save_fpath}/decoder_{layer.index}_WKV.pth")
+                if layer.type == "output":
+                    layer.linear.grad = None
+                    torch.save(layer.linear, f"{save_fpath}/decoder_{layer.index}_linear.pth")
+            torch.save(layer.WO, f"{save_fpath}/{layer.component}_{layer.index}_WO.pth") 
+            layer.ff.save_parameters(qualifier=f"ff/{layer.component}_{layer.index}")
 
-    #         if layer.type == "output":
-    #             torch.save(layer.why, f"{self.save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
-    #             torch.save(layer.by, f"{self.save_fpath}/layer_{layer.index}_by.pth")
 
+
+
+    def forward_inference(self, **kwargs):
+
+        src_emb  = kwargs.get("src_emb")
+
+        device      = src_emb.device
+        batch_size  = src_emb.size(0)
+
+        bos_id = (self.tokenizer.cls_token_id
+                  if self.tokenizer.cls_token_id is not None
+                  else self.tokenizer.bos_token_id)
+        eos_id = (self.tokenizer.sep_token_id
+                  if self.tokenizer.sep_token_id is not None
+                  else self.tokenizer.eos_token_id)
+
+        # ------------------------------------------------------------------ #
+        # 2. Encode source sequence once
+        # ------------------------------------------------------------------ #
+        curr_input = src_emb
+        for encoder in self.encoders:
+            curr_input = encoder.feed(curr_input)
+        X_encoder = curr_input                                            # (B, S, d_model)
+
+        # ------------------------------------------------------------------ #
+        # 3. Initialise decoder with BOS
+        # ------------------------------------------------------------------ #
+        decoder_input_ids = torch.full(
+            (batch_size, 1), bos_id, dtype=torch.long, device=device
+        )                                                                 # (B, 1)
+
+        generated = [decoder_input_ids]                                   # list of tensors
+
+        # ------------------------------------------------------------------ #
+        # 4. Autoregressive loop
+        # ------------------------------------------------------------------ #
+        for _ in range(max_len - 1):
+
+            tgt_emb = self.tgt_embedding(decoder_input_ids)               # (B, T, d_model)
+
+            curr_input = tgt_emb
+            for decoder in self.decoders:
+                curr_input = decoder.feed(curr_input, X_encoder)
+            ZNorm3 = curr_input                                           # (B, T, d_model)
+
+            # Project only the last time step
+            step_logits = self.decoders[-1].linear_feed(ZNorm3[:, -1:, :])  # (B, 1, V)
+            next_id     = step_logits.argmax(dim=-1)                        # (B, 1)
+
+            generated.append(next_id)
+
+            # Stop early if every sequence just produced EOS
+            if (next_id == eos_id).all():
+                break
+
+            decoder_input_ids = torch.cat([decoder_input_ids, next_id], dim=1)  # (B, T+1)
+
+        # ------------------------------------------------------------------ #
+        # 5. Concatenate and return
+        # ------------------------------------------------------------------ #
+        return torch.cat(generated, dim=1)                                # (B, L_generated)
+
+        
 
     def forward(self, training, **kwargs):
+        if training:
+            return self.forward_train(**kwargs)
+        return self.forward_inference(**kwargs)
+
+
+    def forward_train(self, **kwargs):
         
         src_emb = kwargs.get("src_emb")
         
         if self.type == "encoder":
-            return self.forward_encoder_only(src_emb, training)
+            return self.forward_train_encoder_only(src_emb)
         
         tgt_emb = kwargs.get("tgt_emb")
         
         if self.type == "decoder":
-            return self.forward_decoder_only(tgt_emb, training)    
+            return self.forward_train_decoder_only(tgt_emb)    
             
-        return self.forward_encoder_decoder(src_emb, tgt_emb, training)
+        return self.forward_train_encoder_decoder(src_emb, tgt_emb)
 
         
 
-    def forward_encoder_decoder(self, curr_input, tgt_emb, training):
+    def forward_train_encoder_decoder(self, curr_input, tgt_emb):
         
         for encoder in self.encoders:
             curr_input = encoder.feed(curr_input)
@@ -143,19 +223,22 @@ class Transformer(Network):
         
         logits = self.decoders[-1].linear_feed(ZNorm3) # pass final decoder output to linear block and take softmax
         
-        if training:
-            return logits.view(-1, self.tokenizer.vocab_size)
-        return softmax(logits, dim=-1) # probs
+        return logits.view(-1, self.tokenizer.vocab_size)
         
         
         
-    def forward_encoder_only(self, curr_input) -> None:
+    def forward_train_encoder_only(self, curr_input) -> None:
         pass
 
-    def forward_decoder_only(self, curr_input) -> None:
+    def forward_train_decoder_only(self, curr_input) -> None:
         pass
         
 
+
+    @override
+    def inference(self, **kwargs):
+        with torch.no_grad():
+            return self.forward(training=False, **kwargs)
 
         
         
@@ -196,8 +279,8 @@ class Transformer(Network):
             print(f"__________________________________________")
             
 
-        # if save_params:
-            # self.save_parameters()
+        if save_params:
+            self.save_parameters()
             
         return epoch_plt, loss_plt
 

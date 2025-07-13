@@ -8,24 +8,20 @@ import torch
 
 class CNN(Network):
 
-    def __init__(self, pretrained, device_type, training, **kwargs):
+    def __init__(self, pretrained, training, device, **kwargs):
 
         super().__init__(model_type="cnn", training=training, **kwargs)
 
-        self.device_type = torch.device(device_type)
+        self.device = torch.device(device)
         self.save_fpath = kwargs.get("save_fpath")
-        mlp_save_fpath = kwargs.get("mlp_save_fpath")
+
+        specifications = kwargs.get("specifications")
 
         if not pretrained:
-            architecture = kwargs.get("architecture")
-            self.check_config(architecture=architecture)
-            self.layers = self.build_layers(architecture=architecture)
-
-            mlp_input_feature_count = self.calc_mlp_input_shape(kwargs.get("input_data_dim"))
-            self.MLP = MLP(pretrained=False, device_type=self.device_type, training=training, input_feature_count=mlp_input_feature_count, architecture=kwargs.get("mlp_architecture"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
+            self.layers = self.build_layers(kwargs.get("architecture"))
         else:
-            self.layers = self.load_layers(kwargs.get("model_params"))
-            self.MLP = MLP(pretrained=True, device_type=self.device_type, training=training, model_params=kwargs.get("mlp_model_params"), hyperparameters=kwargs.get("mlp_hyperparameters"), save_fpath=mlp_save_fpath)
+            self.layers = self.load_layers(kwargs.get("params"))
+        self.MLP = self.init_mlp(pretrained, training, **kwargs)
 
         if not (self.layers and self.MLP.layers):
             raise ValueError("CNN or MLP layers are uninitialized!")
@@ -37,20 +33,46 @@ class CNN(Network):
 
 
 
-    def load_layers(self, model_params):
+    def load_layers(self, params):
 
         layers = [CNNLayer(
             pretrained=True, 
-            device_type=self.device_type, 
+            device=self.device, 
             type=layer_type, 
             pretrained_kernels=kernels, 
             pretrained_biases=biases, 
             nonlinearity=nonlinearity,
             kernel_stride=stride, 
-            index=index) for (layer_type, kernels, biases, nonlinearity, stride, index) in model_params.values()
+            index=index) for (layer_type, kernels, biases, nonlinearity, stride, index) in params.values()
         ]
 
         return layers
+
+
+    def init_mlp(self, pretrained, training, **kwargs):
+        if not pretrained:
+            return MLP (
+                pretrained=False, 
+                training=training,
+                device=self.device,
+                architecture=self.calc_mlp_input_shape(
+                    kwargs.get("architecture"), 
+                    kwargs.get("mlp_architecture")),
+                hyperparameters=kwargs.get("mlp_hyperparameters"), 
+                save_fpath=kwargs.get("mlp_save_fpath"),
+                specifications=kwargs.get("specifications")
+                )
+        return MLP(
+                pretrained=True, 
+                training=training, 
+                device=self.device,
+                params=kwargs.get("mlp_params"), 
+                hyperparameters=kwargs.get("mlp_hyperparameters"), 
+                save_fpath=kwargs.get("mlp_save_fpath"),
+                specifications=kwargs.get("specifications")
+            )
+        
+        
 
 
     def build_layers(self, architecture):
@@ -64,7 +86,7 @@ class CNN(Network):
         layers = [
             CNNLayer(
             pretrained=False, 
-            device_type=self.device_type, 
+            device=self.device, 
             type=layer_types[i], 
             filter_count=filter_counts[i],
             kernel_shape=kernel_shapes[i], 
@@ -77,28 +99,34 @@ class CNN(Network):
 
 
 
-    def save_parameters(self):
-        os.makedirs(f"{self.save_fpath}", exist_ok=True)
+    def save_parameters(self, qualifier=""):
+        save_fpath = f"{self.save_fpath}/{qualifier}"
+        os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
             #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.kernels, f"{self.save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
-            torch.save(layer.biases, f"{self.save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
+            torch.save(layer.kernels, f"{save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
+            torch.save(layer.biases, f"{save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
 
         self.MLP.save_parameters()
 
 
 
-    def calc_mlp_input_shape(self, input_data_dim):
 
+
+            
+
+    def calc_mlp_input_shape(self, architecture, mlp_architecture):
+        
         print("calculating MLP input shape...")
-
-        input_data_dim = (1, ) + input_data_dim
-
-        dummy_data = torch.empty(size=input_data_dim, device=self.device_type)
+        input_data_dim = (1, ) + tuple(architecture.get("input_data_dim"))
+        dummy_data = torch.empty(size=input_data_dim, device=self.device)
         dummy_MLP_input = self.forward(dummy_data, training=True, dummy=True)
         dummy_mlp_input_feature_count = dummy_MLP_input.size(dim=1)
-        return dummy_mlp_input_feature_count
+        
+        mlp_architecture["input_feature_count"] = dummy_mlp_input_feature_count
+        
+        return mlp_architecture
 
 
 

@@ -105,22 +105,12 @@ class Network:
                 self.by_moment_list = [[0, 0]]*self.num_layers
                 
             elif self.model_type == "transformer":
-                
+                self.WQKV_moment_list = [[0, 0]]*self.num_layers
+                self.WQKV_masked_moment_list = [[0, 0]]*self.num_layers
                 self.WQ_moment_list = [[0, 0]]*self.num_layers
-                self.WK_moment_list = [[0, 0]]*self.num_layers
-                self.WV_moment_list = [[0, 0]]*self.num_layers
+                self.WKV_moment_list = [[0, 0]]*self.num_layers
                 self.WO_moment_list = [[0, 0]]*self.num_layers
-                
-                self.WQ_masked_moment_list = [[0, 0]]*self.num_layers
-                self.WK_masked_moment_list = [[0, 0]]*self.num_layers
-                self.WV_masked_moment_list = [[0, 0]]*self.num_layers
                 self.WO_masked_moment_list = [[0, 0]]*self.num_layers
-
-                # self.ffw1_moment_list = [[0, 0]]*self.num_layers
-                # self.ffb1_moment_list = [[0, 0]]*self.num_layers
-                # self.ffw2_moment_list = [[0, 0]]*self.num_layers
-                # self.ffb2_moment_list = [[0, 0]]*self.num_layers
-                
                 self.linear_moment_list = [[0, 0]]*self.num_layers
 
 
@@ -132,48 +122,6 @@ class Network:
             return self.forward(data, training=False)
 
 
-
-
-
-    ## def train(self, data, target, epochs, save_params=True):
-    # def train(self, **kwargs):
-        
-    #     data, target, epochs, save_params = (
-    #         kwargs.get("data"),  kwargs.get("target"), 
-    #         kwargs.get('epochs'),  kwargs.get("save_params", True)
-    #     )
-
-    #     epoch_plt = []
-    #     loss_plt = []
-    #     self.epochs = epochs
-
-    #     if not self.batch_size: self.batch_size = data.shape[0]
-
-    #     for epoch in range(epochs):
-            
-    #         self.epoch = epoch+1
-
-    #         data_batch, target_batch = self.batch(data, target)
-    #         pred_batch = self.forward(data_batch, training=True, **kwargs)
-    #         # print(f"pred: {pred_batch.shape}")
-
-    #         loss = getattr(self, self.loss_func)(pred_batch, target_batch)
-
-    #         if self.lambda_L2:
-    #             loss += self.l2_regularization()
-    #         self.backprop(loss)
-
-
-    #         epoch_plt.append(epoch)
-    #         loss_plt.append(loss.item())
-    #         print(f"epoch = {epoch+1}, loss = {loss}")
-    #         print(f"__________________________________________")
-            
-
-    #     if save_params:
-    #         self.save_parameters()
-            
-    #     return epoch_plt, loss_plt
     
 
     def train(self, data, target, epochs, save_params=True):
@@ -369,8 +317,6 @@ class Network:
 
 
     def MSELoss(self, pred_batch, target_batch):
-        print(pred_batch.shape)
-        print(target_batch.shape)
         errs = (pred_batch - target_batch)**2
         # mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) if self.batch_size else (1/pred_batch.shape[0])*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
         mse_loss = (1/self.batch_size)*torch.sum(errs, dim=0) # MSE (Mean Squared Error) Loss
@@ -425,22 +371,19 @@ class Network:
     
             elif self.model_type == "transformer":
                 
-                layer.WQ -= self.learn_rate * layer.WQ.grad
-                layer.WK -= self.learn_rate * layer.WK.grad
-                layer.WV -= self.learn_rate * layer.WV.grad
-                layer.WO -= self.learn_rate * layer.WO.grad
-
-                # for ff_layer in layer.ff_layers: 
-                #     ff_layer.weights -= self.learn_rate * ff_layer.weights.grad           
-                #     ff_layer.biases -= self.learn_rate * ff_layer.biases.grad           
-                
+                if layer.component == "encoder":
+                    layer.WQKV -= self.learn_reate * layer.WQKV.grad
+                    
                 if layer.component == "decoder":
-                    layer.WQ_masked -= self.learn_rate * layer.WQ_masked.grad
-                    layer.WK_masked -= self.learn_rate * layer.WK_masked.grad
-                    layer.WV_masked -= self.learn_rate * layer.WV_masked.grad
-                    layer.WO_masked -= self.learn_rate * layer.WO_masked.grad
+                    layer.WQKV_masked -= self.learn_reate * layer.WQKV_masked.grad
+                    layer.WO_masked -= self.learn_reate * layer.WO_masked.grad
+                    layer.WQ -= self.learn_reate * layer.WQ.grad
+                    layer.WKV -= self.learn_reate * layer.WKV.grad
+                    
                     if layer.type == "output":
-                        layer.linear -= self.learn_rate * layer.linear.grad
+                        layer.linear.grad -= self.learn_rate * layer.linear.grad
+                        
+                layer.WO -= self.learn_reate * layer.WO.grad
     
     
     def adam(self, layer_index, gt, param_type, *args):
@@ -476,65 +419,56 @@ class Network:
 
         optimizer_func = getattr(self, self.optimizer)
 
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
+            # layer_index = layer.index-1 # why am i not just doing this???
+            # layer_index = i
 
             if self.model_type == "cnn" and layer.type == "convolutional":
-                # layer_index = self.layers.index(layer)
-                layer_index = layer.index-1 # why am i not just doing this???
-                layer.kernels -= optimizer_func(layer_index=layer_index, gt=layer.kernels.grad, param_type="weight")
-                layer.biases -= optimizer_func(layer_index=layer_index, gt=layer.biases.grad, param_type="bias")
-                # print(layer.kernels)
+                layer.kernels -= optimizer_func(layer_index=i, gt=layer.kernels.grad, param_type="weight")
+                layer.biases -= optimizer_func(layer_index=i, gt=layer.biases.grad, param_type="bias")
 
             elif self.model_type == "mlp":
-                # layer_index = self.layers.index(layer)
-                layer_index = layer.index-1 # why am i not just doing this???
-                layer.weights -= optimizer_func(layer_index=layer_index, gt=layer.weights.grad, param_type="weight")
-                layer.biases -= optimizer_func(layer_index=layer_index, gt=layer.biases.grad, param_type="bias")
+                layer.weights -= optimizer_func(layer_index=i, gt=layer.weights.grad, param_type="weight")
+                layer.biases -= optimizer_func(layer_index=i, gt=layer.biases.grad, param_type="bias")
 
             elif self.model_type == "rnn":
-                # layer_index = self.layers.index(layer)
-                layer_index = layer.index-1 # why am i not just doing this???
-                layer.wxh -= optimizer_func(layer_index=layer_index, gt=layer.wxh.grad, param_type="wxh")
-                layer.whh -= optimizer_func(layer_index=layer_index, gt=layer.whh.grad, param_type="weight")
-                layer.bh -= optimizer_func(layer_index=layer_index, gt=layer.bh.grad, param_type="bias")
+                layer.wxh -= optimizer_func(layer_index=i, gt=layer.wxh.grad, param_type="wxh")
+                layer.whh -= optimizer_func(layer_index=i, gt=layer.whh.grad, param_type="weight")
+                layer.bh -= optimizer_func(layer_index=i, gt=layer.bh.grad, param_type="bias")
             
                 if layer.type == "output":
-                    layer.why -= optimizer_func(layer_index=layer_index, gt=layer.why.grad, param_type="why")
-                    layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="by")
+                    layer.why -= optimizer_func(layer_index=i, gt=layer.why.grad, param_type="why")
+                    layer.by -= optimizer_func(layer_index=i, gt=layer.by.grad, param_type="by")
             
             elif self.model_type == "lstm":
-                # layer_index = self.layers.index(layer)
-                layer_index = layer.index-1 # why am i not just doing this???
-                layer.wf -= optimizer_func(layer_index=layer_index, gt=layer.wf.grad, param_type="wf")
-                layer.wi -= optimizer_func(layer_index=layer_index, gt=layer.wi.grad, param_type="wi")
-                layer.wc -= optimizer_func(layer_index=layer_index, gt=layer.wc.grad, param_type="wc")
-                layer.wo -= optimizer_func(layer_index=layer_index, gt=layer.wo.grad, param_type="wo")
+                layer.wf -= optimizer_func(layer_index=i, gt=layer.wf.grad, param_type="wf")
+                layer.wi -= optimizer_func(layer_index=i, gt=layer.wi.grad, param_type="wi")
+                layer.wc -= optimizer_func(layer_index=i, gt=layer.wc.grad, param_type="wc")
+                layer.wo -= optimizer_func(layer_index=i, gt=layer.wo.grad, param_type="wo")
 
-                layer.bf -= optimizer_func(layer_index=layer_index, gt=layer.bf.grad, param_type="bf")
-                layer.bi -= optimizer_func(layer_index=layer_index, gt=layer.bi.grad, param_type="bi")
-                layer.bc -= optimizer_func(layer_index=layer_index, gt=layer.bc.grad, param_type="bc")
-                layer.bo -= optimizer_func(layer_index=layer_index, gt=layer.bo.grad, param_type="bo")
+                layer.bf -= optimizer_func(layer_index=i, gt=layer.bf.grad, param_type="bf")
+                layer.bi -= optimizer_func(layer_index=i, gt=layer.bi.grad, param_type="bi")
+                layer.bc -= optimizer_func(layer_index=i, gt=layer.bc.grad, param_type="bc")
+                layer.bo -= optimizer_func(layer_index=i, gt=layer.bo.grad, param_type="bo")
 
                 if layer.type == "output":
-                    layer.why -= optimizer_func(layer_index=layer_index, gt=layer.why.grad, param_type="why")
-                    layer.by -= optimizer_func(layer_index=layer_index, gt=layer.by.grad, param_type="by")
+                    layer.why -= optimizer_func(layer_index=i, gt=layer.why.grad, param_type="why")
+                    layer.by -= optimizer_func(layer_index=i, gt=layer.by.grad, param_type="by")
             
             elif self.model_type == "transformer":
-                # layer_index = self.layers.index(layer)
-                layer_index = layer.index-1 # why am i not just doing this???
-                layer.WQ -= optimizer_func(layer_index=layer_index, gt=layer.WQ.grad, param_type="WQ")
-                layer.WK -= optimizer_func(layer_index=layer_index, gt=layer.WK.grad, param_type="WK")
-                layer.WV -= optimizer_func(layer_index=layer_index, gt=layer.WV.grad, param_type="WV")
-                layer.WO -= optimizer_func(layer_index=layer_index, gt=layer.WO.grad, param_type="WO")
+                if layer.component == "encoder":
+                    layer.WQKV -= optimizer_func(layer_index=i, gt=layer.WQKV.grad, param_type="WQKV")
                 
                 if layer.component == "decoder":
-                    layer.WQ_masked -= optimizer_func(layer_index=layer_index, gt=layer.WQ_masked.grad, param_type="WQ_masked")
-                    layer.WK_masked -= optimizer_func(layer_index=layer_index, gt=layer.WK_masked.grad, param_type="WK_masked")
-                    layer.WV_masked -= optimizer_func(layer_index=layer_index, gt=layer.WV_masked.grad, param_type="WV_masked")
-                    layer.WO_masked -= optimizer_func(layer_index=layer_index, gt=layer.WO_masked.grad, param_type="WO_masked")
-
+                    layer.WQKV_masked -= optimizer_func(layer_index=i, gt=layer.WQKV_masked.grad, param_type="WQKV_masked")
+                    layer.WO_masked -= optimizer_func(layer_index=i, gt=layer.WO_masked.grad, param_type="WO_masked")
+                    layer.WQ -= optimizer_func(layer_index=i, gt=layer.WQ.grad, param_type="WQ")
+                    layer.WKV -= optimizer_func(layer_index=i, gt=layer.WKV.grad, param_type="WKV")               
+                    
                     if layer.type == "output":
-                        layer.linear -= optimizer_func(layer_index=layer_index, gt=layer.linear.grad, param_type="linear")
+                        layer.linear -= optimizer_func(layer_index=i, gt=layer.linear.grad, param_type="linear")
+                        
+                layer.WO -= optimizer_func(layer_index=i, gt=layer.WO.grad, param_type="WO")
 
 
 
@@ -567,14 +501,14 @@ class Network:
 
 
 
+    # DEPRECATED
+    # def check_config(self, architecture):
 
-    def check_config(self, architecture):
+    #     config_lengths = [len(v) for k, v in architecture.items()]
+    #     all_same_length = all(config_length == config_lengths[0] for config_length in config_lengths)
 
-        config_lengths = [len(v) for k, v in architecture.items()]
-        all_same_length = all(config_length == config_lengths[0] for config_length in config_lengths)
-
-        if not all_same_length:
-            raise IndexError(f"{self.model_type} Configuration Error. Recheck sizes of configuration objects: {config_lengths}")
+    #     if not all_same_length:
+    #         raise IndexError(f"{self.model_type} Configuration Error. Recheck sizes of configuration objects: {config_lengths}")
 
 
 
@@ -625,19 +559,16 @@ class Network:
                     layer.by.grad = None
                     
             elif self.model_type == "transformer":
-                
-                layer.WQ.grad = None
-                layer.WK.grad = None
-                layer.WV.grad = None
-                layer.WO.grad = None
-
+                if layer.component == "encoder":
+                    layer.WQKV.grad = None
                 if layer.component == "decoder":
-                    layer.WQ_masked.grad = None
-                    layer.WK_masked.grad = None
-                    layer.WV_masked.grad = None
+                    layer.WQKV_masked.grad = None
                     layer.WO_masked.grad = None
+                    layer.WQ.grad = None
+                    layer.WKV.grad = None
                     if layer.type == "output":
                         layer.linear.grad = None
+                layer.WO.grad = None                    
                     
 
 

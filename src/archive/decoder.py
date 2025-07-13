@@ -8,72 +8,123 @@ from models.mlp import MLP
 
 class Decoder:
 
-    def __init__(self, pretrained, **kwargs):
+    def __init__(self, pretrained, device_type, **kwargs):
 
         self.index = int(kwargs.get("index"))
-        self.device = kwargs.get("device")
+        self.device_type = device_type
         self.type = kwargs.get("type")
         self.component = "decoder"
         
+
         if not pretrained:
             
-            self.d_model = kwargs.get("d_model") # should be the same as the encoder
+            self.d_model = kwargs.get("embedding_size") # should be the same as the encoder
             self.h = kwargs.get("num_heads") # may be different from the encoder
             
             assert (self.d_model > self.h and self.d_model % self.h == 0)
             self.dk = int(self.d_model/self.h)
-            self.sqrt_dk = np.sqrt(self.dk)
+            self.sqrt_dk = self.dk**0.5
 
-            stddev = np.sqrt(2 / self.d_model)
+            stddev_model = np.sqrt(2 / self.d_model)
             
-            self.WQKV_masked = torch.normal(
-                0, stddev / np.sqrt(3.0),
-                size=(self.d_model, 3 * self.h * self.dk), # self.h * self.dk = self.d_model
+            self.WQ_masked = torch.normal(
+                0, stddev_model,
+                size=(self.h, self.d_model, self.dk),
                 dtype=torch.float32,
-                device=self.device)
+                device=self.device_type)
+            
+            self.WK_masked = torch.normal(
+                0, stddev_model,
+                size=(self.h, self.d_model, self.dk),
+                dtype=torch.float32,
+                device=self.device_type)
+            
+            self.WV_masked = torch.normal(
+                0, stddev_model,
+                size=(self.h, self.d_model, self.dk),
+                dtype=torch.float32,
+                device=self.device_type)
             
             self.WO_masked = torch.normal(
-                0, stddev,
+                0, stddev_model,
                 size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
-                device=self.device)
+                device=self.device_type)
             
-            self.WQ = torch.normal(
-                0, stddev,
-                size=(self.d_model, self.h * self.dk), # self.h * self.dk = self.d_model
-                dtype=torch.float32,
-                device=self.device)
 
-            self.WKV = torch.normal(
-                0, stddev / np.sqrt(2),
-                size=(self.d_model, 2 * self.h * self.dk), # self.h * self.dk = self.d_model
+            self.WQ = torch.normal(
+                0, stddev_model,
+                size=(self.h, self.d_model, self.dk),
                 dtype=torch.float32,
-                device=self.device)
+                device=self.device_type)
+            
+            self.WK = torch.normal(
+                0, stddev_model,
+                size=(self.h, self.d_model, self.dk),
+                dtype=torch.float32,
+                device=self.device_type)
+            
+            self.WV = torch.normal(
+                0, stddev_model,
+                size=(self.h, self.d_model, self.dk),
+                dtype=torch.float32,
+                device=self.device_type)
             
             self.WO = torch.normal(
-                0, stddev,
+                0, stddev_model,
                 size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
-                device=self.device)
-                        
-            self.ff = MLP(**kwargs.get("ff_config"))
+                device=self.device_type)
+            
+            
+            ff_neuron_count = kwargs.get("ff_neuron_count") # typically 2048 or 4096
+            ff_nonlinearity = kwargs.get("ff_nonlinearity") # typically reLU or GELU
+            
+            # self.ff_layers = [
+            #     DenseLayer(
+            #         pretrained=pretrained,
+            #         device_type=device_type,
+            #         nonlinearity=ff_nonlinearity,
+            #         input_count=self.d_model,
+            #         neuron_count=ff_neuron_count,
+            #         index=1
+            #     ),
+            #     DenseLayer(
+            #         pretrained=pretrained,
+            #         device_type=device_type,
+            #         nonlinearity="none",
+            #         input_count=ff_neuron_count,
+            #         neuron_count=self.d_model,
+            #         index=2
+            #     )
+            # ]
+            
+            self.ff = MLP(pretrained=False, 
+                          device_type=self.device_type, 
+                          training=True, 
+                          input_feature_count=self.d_model, 
+                          architecture=kwargs.get("ff_architecture"), 
+                          hyperparameters=kwargs.get("ff_hyperparameters"), 
+                          save_fpath=kwargs.get("ff_save_fpath")
+                        )
             
             if self.type == "output":
                 V = kwargs.get("vocab_size")
                 self.linear = torch.normal(
-                    0, stddev,
+                    0, stddev_model,
                     size=(self.d_model, V),
                     dtype=torch.float32,
-                    device=self.device)
+                    device=self.device_type)
                 self.linear.requires_grad_()
-                
-        else:
-            pass
 
-        self.WQKV_masked.requires_grad_()
+
+        self.WQ_masked.requires_grad_()
+        self.WK_masked.requires_grad_()
+        self.WV_masked.requires_grad_()
         self.WO_masked.requires_grad_()
         self.WQ.requires_grad_()
-        self.WKV.requires_grad_()
+        self.WK.requires_grad_()
+        self.WV.requires_grad_()
         self.WO.requires_grad_()
 
         self.ln_1 = nn.LayerNorm(self.d_model)
@@ -84,42 +135,20 @@ class Decoder:
         self.combined_mask = None
 
 
-    # def compute_QKV(self, X):
-    #     # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
-    #     Q = torch.einsum("bse,hek->bhsk", X, self.WQ_masked)
-    #     K = torch.einsum("bse,hek->bhsk", X, self.WK_masked)
-    #     V = torch.einsum("bse,hek->bhsk", X, self.WV_masked)
-    #     return Q, K, V
-    
-    # def compute_QKV2(self, X, X_encoder):
-    #     # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
-    #     Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
-    #     K = torch.einsum("bse,hek->bhsk", X_encoder, self.WK)
-    #     V = torch.einsum("bse,hek->bhsk", X_encoder, self.WV)
-    #     return Q, K, V
-    
     def compute_QKV(self, X):
-        # b = batch_dim, s = seq_len, d = d_model, h = num_heads, k = 3 * h * d
-        QKV = torch.einsum('bsd, dk->bsk', X, self.WQKV_masked)  # single Einsum = one GEMM
-        Q, K, V = QKV.chunk(3, dim=-1)
-        batch_size, seq_len = X.shape[:2]
-        Q = Q.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
-        K = K.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
-        V = V.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
+        # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
+        Q = torch.einsum("bse,hek->bhsk", X, self.WQ_masked)
+        K = torch.einsum("bse,hek->bhsk", X, self.WK_masked)
+        V = torch.einsum("bse,hek->bhsk", X, self.WV_masked)
         return Q, K, V
-        
+    
     def compute_QKV2(self, X, X_encoder):
-        # b = batch_dim, s = seq_len, d = d_model, h = num_heads, k = 3 * h * d
-        Q = torch.einsum('bsd, dk->bsk', X, self.WQ)  # single Einsum = one GEMM
-        batch_size, seq_len = X.shape[:2]
-        Q = Q.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
-        
-        KV = torch.einsum('bsd, dk->bsk', X_encoder, self.WKV)  # single Einsum = one GEMM
-        K, V = KV.chunk(2, dim=-1)
-        K = K.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
-        V = V.view(batch_size, seq_len, self.h, self.dk).transpose(1, 2)
-        
+        # b = batch_dim, s = seq_len, e = embedding_dim, h = num_heads, k = dk
+        Q = torch.einsum("bse,hek->bhsk", X, self.WQ)
+        K = torch.einsum("bse,hek->bhsk", X_encoder, self.WK)
+        V = torch.einsum("bse,hek->bhsk", X_encoder, self.WV)
         return Q, K, V
+    
     
     # def masked_attention(self, Q, K, V):
     #     batch_size = Q.shape[0]
@@ -130,7 +159,7 @@ class Decoder:
     
     # def masked_attention(self, Q, K, V):
     #     batch_size, _, seq_len, _ = Q.shape
-    #     causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device)).bool()
+    #     causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device_type)).bool()
     #     causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)
 
     #     if self.padding_mask is not None:
@@ -227,7 +256,7 @@ class Decoder:
 
     def gen_mask(self, X):
         _, seq_len, _ = X.shape
-        causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device)).bool()
+        causal_mask = torch.tril(torch.ones((seq_len, seq_len), device=self.device_type)).bool()
         causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)    
         if self.padding_mask is not None:
             padding_mask = self.padding_mask.unsqueeze(1).unsqueeze(2).bool()  # (B, 1, 1, S)
@@ -264,31 +293,31 @@ class Decoder:
 
 
 
-# if __name__ == "__main__":
-#     batch_size_ = 2
-#     sequence_len = 3
-#     d_model = 4
-#     num_heads = 2
-#     xe = torch.rand(size=(batch_size_, sequence_len, d_model))
-#     xd = torch.rand(size=(batch_size_, sequence_len, d_model))
+if __name__ == "__main__":
+    batch_size_ = 2
+    sequence_len = 3
+    embedding_size = 4
+    num_heads = 2
+    xe = torch.rand(size=(batch_size_, sequence_len, embedding_size))
+    xd = torch.rand(size=(batch_size_, sequence_len, embedding_size))
 
-#     from encoder import Encoder
-#     encoder = Encoder(
-#         pretrained=False, 
-#         device="cpu", 
-#         d_model=d_model, 
-#         num_heads=num_heads,
-#         ff_neuron_count=3,
-#         ff_nonlinearity="GELU"
-#     )
-#     decoder = Decoder(
-#         pretrained=False, 
-#         device="cpu", 
-#         d_model=d_model, 
-#         num_heads=num_heads,
-#         ff_neuron_count=3,
-#         ff_nonlinearity="GELU"
-    # )
+    from encoder import Encoder
+    encoder = Encoder(
+        pretrained=False, 
+        device_type="cpu", 
+        embedding_size=embedding_size, 
+        num_heads=num_heads,
+        ff_neuron_count=3,
+        ff_nonlinearity="GELU"
+    )
+    decoder = Decoder(
+        pretrained=False, 
+        device_type="cpu", 
+        embedding_size=embedding_size, 
+        num_heads=num_heads,
+        ff_neuron_count=3,
+        ff_nonlinearity="GELU"
+    )
     
     # out = encoder.feed(xe)
     # print(out)
@@ -299,13 +328,13 @@ class Decoder:
 # if __name__ == "__main__":
 #     batch_size_ = 5
 #     sequence_len = 3
-#     d_model = 8
-#     x = torch.rand(size=(batch_size_, sequence_len, d_model))
+#     embedding_size = 8
+#     x = torch.rand(size=(batch_size_, sequence_len, embedding_size))
 
 #     decoder = Decoder(
 #         pretrained=False, 
-#         device="cpu", 
-#         d_model=d_model, 
+#         device_type="cpu", 
+#         embedding_size=embedding_size, 
 #         num_heads=2,
 #         ff_neuron_count=3,
 #         ff_nonlinearity="GELU"

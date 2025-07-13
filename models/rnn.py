@@ -7,25 +7,25 @@ import os
 
 class RNN(Network):
     
-    def __init__(self, pretrained, device_type, training, **kwargs):
+    def __init__(self, pretrained, device, training, **kwargs):
 
         super().__init__(model_type="rnn", training=training, **kwargs)
 
-        self.device_type = torch.device(device_type)
-        self.stateful = kwargs.get("stateful", False)
+        self.device = torch.device(device)
         self.save_fpath = kwargs.get("save_fpath")
+        
+        specifications = kwargs.get("specifications")
+        self.stateful = specifications.get("stateful")
+        self.autoregressive = specifications.get("autoregressive")
+        self.teacher_forcing = specifications.get("teacher_forcing") # If no teacher_forcing factor is set (ie like at inference), the model should be 100% auto-regressive
         
         if self.stateful:
             self.state_initialized = False
-        self.autoregressive = kwargs.get("autoregressive", False)
-        self.teacher_forcing = kwargs.get("teacher_forcing", 0) # If no teacher_forcing factor is set (ie like at inference), the model should be 100% auto-regressive
 
         if not pretrained:
-            architecture = kwargs.get("architecture")
-            self.input_feature_count = kwargs.get("input_feature_count")
-            self.layers = self.build_layers(architecture=architecture)
+            self.layers = self.build_layers(kwargs.get("architecture"))
         else:
-            self.layers = self.load_layers(model_params=kwargs.get("model_params"))
+            self.layers = self.load_layers(kwargs.get("params"))
 
         self.whh_nonlinearity = self.layers[0].whh_nonlinearity
         self.why_nonlinearity = self.layers[-1].why_nonlinearity
@@ -41,23 +41,23 @@ class RNN(Network):
 
 
 
-    def load_layers(self, model_params):
+    def load_layers(self, params):
         
         layers = [ 
             
             RNNCell( 
             pretrained=True, 
-            device_type=self.device_type,
+            device=self.device,
             type="hidden",
             pretrained_wxh=wxh,
             pretrained_whh=whh,
             pretrained_bh=bh,
             hidden_nonlinearity=hidden_activation_fn,
-            index=index ) for (wxh, whh, bh, hidden_activation_fn, index) in list(model_params.values())[:-1] ] + [ 
+            index=index ) for (wxh, whh, bh, hidden_activation_fn, index) in list(params.values())[:-1] ] + [ 
                 
             RNNCell(
             pretrained=True, 
-            device_type=self.device_type,
+            device=self.device,
             type="output",
             pretrained_wxh=wxh,
             pretrained_whh=whh,
@@ -66,7 +66,7 @@ class RNN(Network):
             pretrained_why=why,
             pretrained_by=by,
             output_nonlinearity=output_activation,
-            index=index ) for (wxh, whh, bh, hidden_activation_fn, why, by, output_activation, index) in [list(model_params.values())[-1]] ]
+            index=index ) for (wxh, whh, bh, hidden_activation_fn, why, by, output_activation, index) in [list(params.values())[-1]] ]
     
         return layers
 
@@ -78,14 +78,15 @@ class RNN(Network):
         output_activation_fn = architecture.get("output_activation_fn")
         output_feature_count = architecture.get("output_feature_count")
         num_layers = len(hidden_state_neuron_counts)
+        input_feature_count = architecture.get("input_feature_count")
 
         layers = [ 
             
             RNNCell( 
             pretrained=False, 
-            device_type=self.device_type,
+            device=self.device,
             type="hidden",
-            wxh_input_count=self.input_feature_count if i == 0 else hidden_state_neuron_counts[i-1],
+            wxh_input_count=input_feature_count if i == 0 else hidden_state_neuron_counts[i-1],
             wxh_neuron_count=hidden_state_neuron_counts[i],
             whh_input_count=hidden_state_neuron_counts[i],
             whh_neuron_count=hidden_state_neuron_counts[i],
@@ -94,9 +95,9 @@ class RNN(Network):
                     
             RNNCell(
             pretrained=False, 
-            device_type=self.device_type,
+            device=self.device,
             type="output",
-            wxh_input_count=self.input_feature_count if num_layers == 1 else hidden_state_neuron_counts[-2],
+            wxh_input_count=input_feature_count if num_layers == 1 else hidden_state_neuron_counts[-2],
             wxh_neuron_count=hidden_state_neuron_counts[-1],
             whh_input_count=hidden_state_neuron_counts[-1],
             whh_neuron_count=hidden_state_neuron_counts[-1],
@@ -110,17 +111,18 @@ class RNN(Network):
         return layers
     
 
-    def save_parameters(self):
-        os.makedirs(f"{self.save_fpath}", exist_ok=True)
+    def save_parameters(self, qualifier=""):
+        save_fpath = f"{self.save_fpath}/{qualifier}"
+        os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
             #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.wxh, f"{self.save_fpath}/layer_{layer.index}_wxh.pth")
-            torch.save(layer.whh, f"{self.save_fpath}/layer_{layer.index}_whh_{layer.whh_nonlinearity}.pth")
-            torch.save(layer.bh, f"{self.save_fpath}/layer_{layer.index}_bh.pth")
+            torch.save(layer.wxh, f"{save_fpath}/layer_{layer.index}_wxh.pth")
+            torch.save(layer.whh, f"{save_fpath}/layer_{layer.index}_whh_{layer.whh_nonlinearity}.pth")
+            torch.save(layer.bh, f"{save_fpath}/layer_{layer.index}_bh.pth")
             if layer.type == "output":
-                torch.save(layer.why, f"{self.save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
-                torch.save(layer.by, f"{self.save_fpath}/layer_{layer.index}_by.pth")
+                torch.save(layer.why, f"{save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
+                torch.save(layer.by, f"{save_fpath}/layer_{layer.index}_by.pth")
 
 
  
@@ -131,7 +133,7 @@ class RNN(Network):
         return [torch.zeros(
             size=(batch_size, layer.wxh_neuron_count), 
             dtype=torch.float32, 
-            device=self.device_type) for layer in self.layers]
+            device=self.device) for layer in self.layers]
 
 
 
@@ -157,7 +159,7 @@ class RNN(Network):
 
 
         output_feature_count = by.shape[-1]
-        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device_type)
+        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device)
 
 
         for t in range(T):
@@ -206,7 +208,7 @@ class RNN(Network):
         by = self.layers[-1].by
 
         output_feature_count = by.shape[0]
-        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device_type)
+        Y = torch.zeros(batch_size, T, output_feature_count, device=self.device)
 
         x = X[:, 0, :]
         # print(x.shape)
@@ -233,6 +235,7 @@ class RNN(Network):
             ht1_l = ht_l
 
             if training:
+                # 0 means fully autoregressive, 1 means fully teacher-forced
                 teacher_forcing_factor = (
                     self.epoch/self.epochs if (self.teacher_forcing == "progressive") # progressive teacher-forcing
                     else 1 - self.epoch/self.epochs if (self.teacher_forcing == "regressive") # regressive teacher-forcing

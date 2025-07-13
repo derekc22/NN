@@ -14,14 +14,17 @@ args = parser.parse_args()
 config = load_config(args.config)
 log_id = config['log_id']
 
-specs = config["specs"]
-device_type = specs["device_type"] #torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mode = args.mode #specs["mode"]
-pretrained = args.pretrained #specs["pretrained"]
-input_feature_count = specs["input_feature_count"]
+system = config["system"]
+device = system["device"]
+save_fpath = system["save_fpath"]
 
-save_fpath = config["save_fpath"]
+specifications = config["specifications"]
+
 architecture = config["architecture"]
+input_feature_count = architecture["input_feature_count"]
+
+mode = args.mode
+pretrained = args.pretrained
 
 
 # Training mode
@@ -32,28 +35,30 @@ if mode == "train":
     show_plot = train_config["show_loss_plot"]
     hyperparameters = config["hyperparameters"]
     
-    data_batch, label_batch = gen_matrix_stack(train_dataset_size, int(input_feature_count**(1/2)))
-    # print(data_batch.shape)
-    # print(label_batch.shape)
+    data_batch, label_batch = gen_matrix_stack(
+        train_dataset_size, 
+        int(input_feature_count**(1/2))
+    )
 
     if pretrained:
         mlp = MLP(
             pretrained=True,
             training=True,
-            device_type=device_type,
+            device=device,
+            params=fetch_mlp_params_from_file(device, save_fpath),
             hyperparameters=hyperparameters,
-            model_params=fetch_mlp_params_from_file(device_type, save_fpath),
             save_fpath=save_fpath,
+            specifications=specifications
         )
     else:
         mlp = MLP(
             pretrained=False,
             training=True,
-            device_type=device_type,
-            hyperparameters=hyperparameters,
+            device=device,
             architecture=architecture,
-            input_feature_count=input_feature_count,
+            hyperparameters=hyperparameters,
             save_fpath=save_fpath,
+            specifications=specifications
         )
 
     epoch_plt, loss_plt = mlp.train(
@@ -70,18 +75,17 @@ if mode == "train":
 else:
     test_config = config["test"]
     test_dataset_size = test_config["test_dataset_size"]
-    show_results = test_config["show_results"]
 
     data_batch, label_batch = gen_matrix_stack(test_dataset_size, int(input_feature_count**(1/2)))
 
     mlp = MLP(
         pretrained=True,
         training=False,
-        device_type=device_type,
-        model_params=fetch_mlp_params_from_file(device_type, save_fpath),
+        device=device,
+        params=fetch_mlp_params_from_file(device, save_fpath),
+        specifications=specifications
     )
 
     prediction_batch = mlp.inference(data_batch)
-    print(prediction_batch.shape)
     print_classification_results(test_dataset_size, prediction_batch, label_batch)
 
