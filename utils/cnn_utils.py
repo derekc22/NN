@@ -211,16 +211,16 @@ def fetch_cnn_params_from_file(device, directory):
     params = {}
 
     # Use glob to get all files matching the pattern
-    kernel_pattern = "cnn_layer_*_kernels_*_*_*.pth"  # Pattern to match
+    kernel_pattern = "layer_*_kernels_*_*_*.pth"  # Pattern to match
     kernel_files = glob.glob(os.path.join(directory, kernel_pattern))
     kernel_files.sort()
 
-    bias_pattern = "cnn_layer_*_biases_*_*_*.pth"  # Pattern to match
+    bias_pattern = "layer_*_biases_*_*_*.pth"  # Pattern to match
     bias_files = glob.glob(os.path.join(directory, bias_pattern))
     bias_files.sort()
 
 
-    regex_pattern = r"cnn_layer_(\d+)_kernels_(\w+)_([\w]+)_(\d+)\.pth"
+    regex_pattern = r"layer_(\d+)_kernels_(\w+)_([\w]+)_(\d+)\.pth"
 
     for (k_file, b_file) in zip(kernel_files, bias_files):
 
@@ -234,6 +234,6 @@ def fetch_cnn_params_from_file(device, directory):
         layer_type = match.group(3)
         stride = match.group(4)
 
-        params.update({f"CNN Layer {index}": [layer_type, kernels, biases, activation, stride, index] })
+        params.update({f"layer_{index}": [layer_type, kernels, biases, activation, stride, index] })
 
     return params

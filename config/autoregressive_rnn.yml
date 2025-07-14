@@ -1,9 +1,9 @@
 architecture:
-  hidden_activation_fn: sigmoid
+  hidden_activation: sigmoid
   hidden_state_neuron_counts:
   - 64
   input_feature_count: 1
-  output_activation_fn: none
+  output_activation: none
   output_feature_count: 1
 hyperparameters:
   batch_size: 32

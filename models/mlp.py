@@ -35,8 +35,8 @@ class MLP(Network):
             device=self.device, 
             pretrained_weights=weights, 
             pretrained_biases=biases, 
-            nonlinearity=nonlinearity, 
-            index=index) for (weights, biases, nonlinearity, index) in params.values()
+            activation=activation, 
+            index=index) for (weights, biases, activation, index) in params.values()
         ]
 
         return layers
@@ -45,7 +45,7 @@ class MLP(Network):
     def build_layers(self, architecture):
 
         neuron_counts = architecture.get("neuron_counts")
-        activation_fns = architecture.get("activation_fns")
+        activations = architecture.get("activations")
         input_feature_count = architecture.get("input_feature_count")
 
         neuron_counts = [input_feature_count] + neuron_counts
@@ -57,7 +57,7 @@ class MLP(Network):
             device=self.device, 
             input_count=neuron_counts[i],
             neuron_count=neuron_counts[i+1], 
-            nonlinearity=activation_fns[i], 
+            activation=activations[i], 
             index=i+1) for i in range(num_layers)
         ]
 
@@ -69,8 +69,8 @@ class MLP(Network):
         os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.weights, f"{save_fpath}/layer_{layer.index}_weights_{layer.nonlinearity}.pth")
-            torch.save(layer.biases, f"{save_fpath}/layer_{layer.index}_biases_{layer.nonlinearity}.pth")
+            torch.save(layer.weights, f"{save_fpath}/layer_{layer.index}_weights_{layer.activation}.pth")
+            torch.save(layer.biases, f"{save_fpath}/layer_{layer.index}_biases_{layer.activation}.pth")
 
 
 

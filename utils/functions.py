@@ -35,5 +35,5 @@ def none(k):
     return k
 
 
-def activate(z, nonlinearity):
-    return globals()[nonlinearity](z)
+def activate(z, activation):
+    return globals()[activation](z)

@@ -1,5 +1,5 @@
 architecture:
-  activation_fns:
+  activations:
   - leakyReLU
   - leakyReLU
   - leakyReLU

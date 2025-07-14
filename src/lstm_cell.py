@@ -10,8 +10,8 @@ class LSTMCell():
 
         self.index = int(kwargs.get("index"))
         self.device = kwargs.get("device")
-        self.gate_nonlinearity = kwargs.get("gate_nonlinearity")
-        self.why_nonlinearity = kwargs.get("output_nonlinearity")
+        self.gate_activation = kwargs.get("gate_activation")
+        self.why_activation = kwargs.get("output_activation")
         self.type = kwargs.get("type")
         # self.stateful = kwargs.get("stateful")
         
@@ -121,7 +121,7 @@ class LSTMCell():
     def __repr__(self):
         pass
         # return (f"__________________________________________\n"
-        #         f"MLP Layer {self.index}\nWeights:\n{self.weights}\nBiases:\n{self.biases}\nActivation:\n{self.nonlinearity}\n"
+        #         f"MLP Layer {self.index}\nWeights:\n{self.weights}\nBiases:\n{self.biases}\nActivation:\n{self.activation}\n"
         #         f"__________________________________________")
 
 

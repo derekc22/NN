@@ -136,4 +136,9 @@ transformer (07/10/2025)
    - work on transformer training
    - add attention mask to encoder and decoder (in addition to causal mask already present in decoder)
 
+transformer (07/13/2025)
+   - fused Q, K, V weight matrices into single weight matrix WQKV for both encoder and decoder
+   - refactored codebase such that model instantiation is standardized across all models (mlp, rnn, lstm, cnn, transformer)
+   -- instead of passing specialized arguments to each model's constructor (i.e. stateful for rnn/lstm, tokenizer for transformer, etc), now each of those arguments are passed via a single 'specifications' argument that is derived from the model's config file
+
 

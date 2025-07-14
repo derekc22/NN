@@ -1,9 +1,11 @@
 architecture:
-  gate_activation_fn: sigmoid
+  gate_activation: sigmoid
   gate_neuron_counts:
   - 64
+  - 64
+  - 64
   input_feature_count: 1
-  output_activation_fn: none
+  output_activation: none
   output_feature_count: 1
 hyperparameters:
   batch_size: 64
@@ -15,7 +17,7 @@ hyperparameters:
   loss_func: MSELoss
   optimizer: adam
   reduction: mean
-log_id: logs/2025-07-13_12:51:41_lstm
+log_id: logs/2025-07-13_15:17:30_lstm
 specifications:
   autoregressive: false
   stateful: false

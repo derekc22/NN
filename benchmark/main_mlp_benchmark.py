@@ -14,7 +14,7 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
         layers = []
         in_features = input_feature_count
-        for out_features, activation in zip(neuron_counts, activation_fns):
+        for out_features, activation in zip(neuron_counts, activations):
             layers.append(nn.Linear(in_features, out_features))
             layers.append(activation)
             in_features = out_features
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # Configuration from mlp.yml
     input_feature_count = 9
     neuron_counts = [64, 64, 1]
-    activation_fns = [nn.LeakyReLU(), nn.LeakyReLU(), nn.LeakyReLU()]
+    activations = [nn.LeakyReLU(), nn.LeakyReLU(), nn.LeakyReLU()]
     loss_func = nn.MSELoss(reduction='mean')
     learn_rate = 0.01
     lambda_L2 = 0.001

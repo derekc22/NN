@@ -1,5 +1,6 @@
 import torch
 from utils.data import *
+from utils.transformer_utils import *
 from utils.logger import load_config
 from models.transformer import Transformer
 from utils.encoder_decoder_tokenizer import Seq2SeqInputPreprocessor  
@@ -16,7 +17,8 @@ log_id = config['log_id']
 
 system = config["system"]
 device = system["device"]
-save_fpath = system["save_fpath"]
+transformer_save_fpath = system["save_fpath"]
+ff_save_fpath = system["ff_save_fpath"]
 
 specifications = config["specifications"]
 context_window = specifications["context_window"]
@@ -34,7 +36,6 @@ pretrained = args.pretrained
 # Training mode
 if mode == "train":
     train_config = config["train"]
-    train_dataset_size = train_config["train_dataset_size"]
     epochs = train_config["epochs"]
     show_plot = train_config["show_loss_plot"]
     hyperparameters = config["hyperparameters"]
@@ -42,8 +43,7 @@ if mode == "train":
     ff_hyperparameters = hyperparameters["ff_hyperparameters"]
     
     # Usage
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    preprocessor = Seq2SeqInputPreprocessor("bert-base-uncased", d_model, context_window).to(device)
+    preprocessor = Seq2SeqInputPreprocessor("bert-base-uncased", d_model, context_window).to(torch.device(device))
 
     # Replace with your actual dataset
     source_texts = [
@@ -93,10 +93,10 @@ if mode == "train":
             ff_architecture=ff_architecture,
             hyperparameters=transformer_hyperparameters,
             ff_hyperparameters=ff_hyperparameters,
-            save_fpath=save_fpath,
+            save_fpath=transformer_save_fpath,
+            ff_save_fpath=ff_save_fpath,
             specifications=specifications
         )
-
 
     epoch_plt, loss_plt = transformer.train(
         src_emb=src_emb.detach(), 
@@ -110,4 +110,60 @@ if mode == "train":
         plot_training_results(epoch_plt, loss_plt, log_id)
 
 # Testing mode
-# else:
+else:
+    test_config = config["test"]
+    show_results = test_config["show_results"]
+    
+    # Usage
+    preprocessor = Seq2SeqInputPreprocessor("bert-base-uncased", d_model, context_window).to(torch.device(device))
+
+    # Replace with your actual dataset
+    source_texts = [
+        "Write a short story about a dragon.",
+        "Describe a rainy day."
+    ]
+
+    target_texts = [
+        "Ecris une courte histoire sur un dragon.",
+        "Decris une journee pluvieuse."
+    ]
+
+    # Tokenize and prepare inputs
+    batch = preprocessor.tokenize(source_texts, target_texts, max_length=sequence_length)
+
+    input_ids = batch["input_ids"].to(device)
+    attention_mask = batch["attention_mask"].to(device)
+    decoder_input_ids = batch["decoder_input_ids"].to(device)
+    decoder_attention_mask = batch["decoder_attention_mask"].to(device)
+    labels = batch["labels"].to(device)
+
+    # Get embedded inputs
+    src_emb, tgt_emb = preprocessor(input_ids, decoder_input_ids)
+
+    # Final model call
+    # output = model
+    #     src_emb,                   # (B, S_src, D)
+    #     tgt_emb,                   # (B, S_tgt, D)
+    #     attention_mask,            # (B, S_src)
+    #     decoder_attention_mask,    # (B, S_tgt)
+    #     labels                     # (B, S_tgt)
+    # )
+
+    specifications["encoder_padding_mask"] = attention_mask
+    specifications["decoder_padding_mask"] = decoder_attention_mask
+    specifications["tokenizer"] = preprocessor
+
+    transformer = Transformer(
+        pretrained=True,
+        training=False,
+        device=device,
+        params=fetch_transformer_params_from_file(device, transformer_save_fpath, ff_save_fpath),
+        specifications=specifications
+    )
+    
+    text = transformer.inference(
+        src_emb=src_emb, 
+        tgt_emb=tgt_emb
+    )
+    
+    print(text)

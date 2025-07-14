@@ -27,8 +27,8 @@ class LSTM(Network):
         else:
             self.layers = self.load_layers(kwargs.get("params"))
 
-        self.gate_nonlinearity = self.layers[0].gate_nonlinearity
-        self.why_nonlinearity = self.layers[-1].why_nonlinearity
+        self.gate_activation = self.layers[0].gate_activation
+        self.why_activation = self.layers[-1].why_activation
         
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
@@ -57,8 +57,8 @@ class LSTM(Network):
             pretrained_bi=bi,
             pretrained_bc=bc,
             pretrained_bo=bo,
-            gate_nonlinearity=gate_activation_fn,
-            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation_fn, index) in list(params.values())[:-1] ] + [ 
+            gate_activation=gate_activation,
+            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation, index) in list(params.values())[:-1] ] + [ 
                 
             LSTMCell(
             pretrained=True, 
@@ -72,11 +72,11 @@ class LSTM(Network):
             pretrained_bi=bi,
             pretrained_bc=bc,
             pretrained_bo=bo,
-            gate_nonlinearity=gate_activation_fn,
+            gate_activation=gate_activation,
             pretrained_why=why,
             pretrained_by=by,
-            output_nonlinearity=output_activation_fn,
-            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation_fn, why, by, output_activation_fn, index) in [list(params.values())[-1]] ]
+            output_activation=output_activation,
+            index=index ) for (wf, wi, wc, wo, bf, bi, bc, bo, gate_activation, why, by, output_activation, index) in [list(params.values())[-1]] ]
         
         return layers
 
@@ -85,8 +85,8 @@ class LSTM(Network):
     def build_layers(self, architecture):
 
         gate_neuron_counts = architecture.get("gate_neuron_counts")
-        gate_activation_fn = architecture.get("gate_activation_fn")
-        output_activation_fn = architecture.get("output_activation_fn")
+        gate_activation = architecture.get("gate_activation")
+        output_activation = architecture.get("output_activation")
         output_feature_count = architecture.get("output_feature_count")
         num_layers = len(gate_neuron_counts)
         input_feature_count = architecture.get("input_feature_count")
@@ -101,7 +101,7 @@ class LSTM(Network):
             xt_input_count=input_feature_count if i == 0 else gate_neuron_counts[i-1],
             ht1_input_count=gate_neuron_counts[i],
             gate_neuron_count=gate_neuron_counts[i],
-            gate_activation_fn=gate_activation_fn,
+            gate_activation=gate_activation,
             index=i+1 ) for i in range(num_layers-1) ] + [
 
             LSTMCell(
@@ -111,9 +111,9 @@ class LSTM(Network):
             xt_input_count=input_feature_count if num_layers == 1 else gate_neuron_counts[-2],
             ht1_input_count=gate_neuron_counts[-1],
             gate_neuron_count=gate_neuron_counts[-1],
-            gate_nonlinearity=gate_activation_fn,
+            gate_activation=gate_activation,
             why_neuron_count=output_feature_count,
-            output_nonlinearity=output_activation_fn,
+            output_activation=output_activation,
             index=num_layers ) 
         ] 
    
@@ -124,12 +124,11 @@ class LSTM(Network):
         save_fpath = f"{self.save_fpath}/{qualifier}"
         os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
-            #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.wf, f"{save_fpath}/layer_{layer.index}_wf_{layer.gate_nonlinearity}.pth")
-            torch.save(layer.wi, f"{save_fpath}/layer_{layer.index}_wi_{layer.gate_nonlinearity}.pth")
-            torch.save(layer.wc, f"{save_fpath}/layer_{layer.index}_wc_{layer.gate_nonlinearity}.pth")
-            torch.save(layer.wo, f"{save_fpath}/layer_{layer.index}_wo_{layer.gate_nonlinearity}.pth")
+            torch.save(layer.wf, f"{save_fpath}/layer_{layer.index}_wf_{layer.gate_activation}.pth")
+            torch.save(layer.wi, f"{save_fpath}/layer_{layer.index}_wi_{layer.gate_activation}.pth")
+            torch.save(layer.wc, f"{save_fpath}/layer_{layer.index}_wc_{layer.gate_activation}.pth")
+            torch.save(layer.wo, f"{save_fpath}/layer_{layer.index}_wo_{layer.gate_activation}.pth")
 
             torch.save(layer.bf, f"{save_fpath}/layer_{layer.index}_bf.pth")
             torch.save(layer.bi, f"{save_fpath}/layer_{layer.index}_bi.pth")
@@ -137,7 +136,7 @@ class LSTM(Network):
             torch.save(layer.bo, f"{save_fpath}/layer_{layer.index}_bo.pth")
 
             if layer.type == "output":
-                torch.save(layer.why, f"{save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
+                torch.save(layer.why, f"{save_fpath}/layer_{layer.index}_why_{layer.why_activation}.pth")
                 torch.save(layer.by, f"{save_fpath}/layer_{layer.index}_by.pth")
 
 
@@ -161,10 +160,10 @@ class LSTM(Network):
 
     def calculate_state(self, x, ht1_i, Ct1_i, wf_i, bf_i, wi_i, bi_i, wc_i, bc_i, wo_i, bo_i ):
         ht1_xt_i = torch.cat([ht1_i, x], dim=1)
-        ft = activate(ht1_xt_i @ wf_i + bf_i, self.gate_nonlinearity)
-        it = activate(ht1_xt_i @ wi_i + bi_i, self.gate_nonlinearity)
+        ft = activate(ht1_xt_i @ wf_i + bf_i, self.gate_activation)
+        it = activate(ht1_xt_i @ wi_i + bi_i, self.gate_activation)
         Ct_tilde = torch.tanh(ht1_xt_i @ wc_i + bc_i)
-        ot = activate(ht1_xt_i @ wo_i + bo_i, self.gate_nonlinearity)
+        ot = activate(ht1_xt_i @ wo_i + bo_i, self.gate_activation)
         Ct = ft * Ct1_i + it * Ct_tilde
         ht_i = ot * torch.tanh(Ct)
 
@@ -230,7 +229,7 @@ class LSTM(Network):
             
             # print("done")
             Y[:, t, :] = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                ht_l[-1] @ why + by, self.why_activation)
             
             ht1_l = ht_l
 
@@ -299,7 +298,7 @@ class LSTM(Network):
                 )
             
             y = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                ht_l[-1] @ why + by, self.why_activation)
             Y[:, t, :] = y
             
             ht1_l = ht_l

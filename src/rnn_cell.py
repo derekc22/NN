@@ -12,8 +12,8 @@ class RNNCell():
 
         self.index = int(kwargs.get("index"))
         self.device = device
-        self.whh_nonlinearity = kwargs.get("hidden_nonlinearity")
-        self.why_nonlinearity = kwargs.get("output_nonlinearity") 
+        self.whh_activation = kwargs.get("hidden_activation")
+        self.why_activation = kwargs.get("output_activation") 
         self.type = kwargs.get("type")
         # self.batch_size = kwargs.get("batch_size")
         
@@ -101,7 +101,7 @@ class RNNCell():
 
     # def __repr__(self):
     #     return (f"__________________________________________\n"
-    #             f"RNN Cell {self.index}\nwxh:\n{self.wxh.shape}\nwhh:{self.whh.shape}\\bh:\n{self.bh.shape}\nwhh Activation:\n{self.whh_nonlinearity}\n"
+    #             f"RNN Cell {self.index}\nwxh:\n{self.wxh.shape}\nwhh:{self.whh.shape}\\bh:\n{self.bh.shape}\nwhh Activation:\n{self.whh_activation}\n"
     #             f"__________________________________________")
 
 
