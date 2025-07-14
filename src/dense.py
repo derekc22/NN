@@ -10,7 +10,7 @@ class DenseLayer:
 
         self.index = int(kwargs.get("index"))
         self.device = kwargs.get("device")
-        self.nonlinearity = kwargs.get("nonlinearity")
+        self.activation = kwargs.get("activation")
 
         if not pretrained:
 
@@ -45,7 +45,7 @@ class DenseLayer:
 
     def __repr__(self):
         return (f"__________________________________________\n"
-                f"MLP Layer {self.index}\nWeights:\n{self.weights}\nBiases:\n{self.biases}\nActivation:\n{self.nonlinearity}\n"
+                f"MLP Layer {self.index}\nWeights:\n{self.weights}\nBiases:\n{self.biases}\nActivation:\n{self.activation}\n"
                 f"__________________________________________")
 
 
@@ -63,7 +63,7 @@ class DenseLayer:
         # ####### TESTING THIS ############################
 
 
-        y = activate(z, self.nonlinearity)
+        y = activate(z, self.activation)
 
 
         return y

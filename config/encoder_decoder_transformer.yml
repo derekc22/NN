@@ -1,13 +1,13 @@
 architecture:
   ff_architecture:
-    activation_fns:
-    - reLU
-    - reLU
+    activations:
+    - GELU
+    - GELU
     neuron_counts:
     - 2048
-    - 64
+    - 512
   transformer_architecture:
-    d_model: 64
+    d_model: 512
     depth: 6
     model_type: encoder-decoder
     num_heads: 8
@@ -15,22 +15,23 @@ hyperparameters:
   ff_hyperparameters:
     dropout_rate: null
     lambda_L2: 0.001
-    learn_rate: 0.01
+    learn_rate: 0.001
     optimizer: adam
   transformer_hyperparameters:
     batch_size: null
     dropout_rate: null
     lambda_L2: null
-    learn_rate: 0.01
+    learn_rate: 0.001
     loss_func: CELoss
     optimizer: adam
     reduction: mean
-log_id: logs/2025-07-13_11:52:12_encoder_decoder_transformer
+log_id: logs/2025-07-13_19:20:47_encoder_decoder_transformer
 specifications:
   context_window: 512
   sequence_length: 128
 system:
   device: cpu
+  ff_save_fpath: ./params/transformer/ff
   save_fpath: ./params/transformer
 test:
   show_results: false

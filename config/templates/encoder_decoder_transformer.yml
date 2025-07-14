@@ -1,8 +1,8 @@
 architecture:
   ff_architecture:
-    activation_fns:
+    activations:
     - # ff activation fn
-    - # ff activation_fn
+    - # ff activation
     neuron_counts:
     - # ff neuron count
     - # ff output neuron count; MUST MATCH d_model

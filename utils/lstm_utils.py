@@ -65,7 +65,7 @@ def fetch_lstm_params_from_file(device, directory):
         index = match.group(1)
         gate_activation = match.group(2)
 
-        params.update({f"Layer {index}": [wf, wi, wc, wo, bf, bi, bc, bo, gate_activation, index] })
+        params.update({f"layer_{index}": [wf, wi, wc, wo, bf, bi, bc, bo, gate_activation, index] })
     
 
     why_pattern = "layer_*_why_*.pth"  # Pattern to match
@@ -85,6 +85,6 @@ def fetch_lstm_params_from_file(device, directory):
     output_activation = match.group(2)
 
     output_params =  [why, by, output_activation]
-    params[f"Layer {index}"][9:9] = output_params
+    params[f"layer_{index}"][9:9] = output_params
     
     return params

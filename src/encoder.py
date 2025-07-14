@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 from utils.functions import softmax 
-from src.dense import DenseLayer
 from models.mlp import MLP
 # torch.manual_seed(42)
 
@@ -13,34 +12,40 @@ class Encoder:
         self.index = int(kwargs.get("index"))
         self.device = kwargs.get("device")
         self.component = "encoder"
+        self.h = kwargs.get("num_heads")
 
         if not pretrained:
             
             self.d_model = kwargs.get("d_model") #  AKA model dimension AKA d_model
-            self.h = kwargs.get("num_heads")
             
-            assert (self.d_model > self.h and self.d_model % self.h == 0)
-            self.dk = int(self.d_model/self.h)
-            self.sqrt_dk = np.sqrt(self.dk)
-
             stddev = np.sqrt(2 / self.d_model)
 
             self.WQKV = torch.normal(
-                0, stddev / np.sqrt(3.0),
-                size=(self.d_model, 3 * self.h * self.dk), # self.h * self.dk = self.d_model
+                0, stddev / np.sqrt(3),
+                # size=(self.d_model, 3 * self.h * self.dk)
+                size=(self.d_model, 3 * self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
 
             self.WO = torch.normal(
                 0, stddev,
-                size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
+                # size=(self.h * self.dk, self.d_model)
+                size=(self.d_model, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
-            
-            self.ff = MLP(**kwargs.get("ff_config"))
-            
+                        
         else:
-            pass
+            self.WQKV = kwargs.get("pretrained_WQKV").to(device=self.device)
+            self.WO = kwargs.get("pretrained_WO").to(device=self.device)
+            self.d_model = self.WQKV.shape[0]
+
+
+        assert (self.d_model > self.h and self.d_model % self.h == 0)
+        self.dk = int(self.d_model/self.h)
+        self.sqrt_dk = np.sqrt(self.dk)
+
+        self.ff = MLP(**kwargs.get("ff_config"))
+        self.ff.training = kwargs.get("ff_config").get("training")
         
         self.WQKV.requires_grad_()
         self.WO.requires_grad_()
@@ -132,7 +137,7 @@ class Encoder:
         #     ZNorm1.reshape(-1, self.d_model)
         #     ).reshape(batch_size, seq_len, self.d_model)
         ZFF = self.ff.forward(
-            ZNorm1.reshape(-1, self.d_model), training=True
+            ZNorm1.reshape(-1, self.d_model), training=self.ff.training
             ).reshape(batch_size, seq_len, self.d_model)
         
         ZNorm2 = self.add_norm(ZNorm1, ZFF, self.ln_2)
@@ -158,6 +163,6 @@ class Encoder:
 #         d_model=d_model, 
 #         num_heads=num_heads,
 #         ff_neuron_count=3,
-#         ff_nonlinearity="GELU"
+#         ff_activation="GELU"
 #     )
 #     encoder.feed(x)

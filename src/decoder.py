@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 from utils.functions import softmax 
-from src.dense import DenseLayer
 from models.mlp import MLP
 # torch.manual_seed(42)
 
@@ -14,50 +13,49 @@ class Decoder:
         self.device = kwargs.get("device")
         self.type = kwargs.get("type")
         self.component = "decoder"
+        self.h = kwargs.get("num_heads") # may be different from the encoder
         
         if not pretrained:
             
             self.d_model = kwargs.get("d_model") # should be the same as the encoder
-            self.h = kwargs.get("num_heads") # may be different from the encoder
             
-            assert (self.d_model > self.h and self.d_model % self.h == 0)
-            self.dk = int(self.d_model/self.h)
-            self.sqrt_dk = np.sqrt(self.dk)
-
             stddev = np.sqrt(2 / self.d_model)
             
             self.WQKV_masked = torch.normal(
                 0, stddev / np.sqrt(3.0),
-                size=(self.d_model, 3 * self.h * self.dk), # self.h * self.dk = self.d_model
+                # size=(self.d_model, 3 * self.h * self.dk)
+                size=(self.d_model, 3 * self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
             
             self.WO_masked = torch.normal(
                 0, stddev,
-                size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
+                # size=(self.h * self.dk, self.d_model)
+                size=(self.d_model, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
             
             self.WQ = torch.normal(
                 0, stddev,
-                size=(self.d_model, self.h * self.dk), # self.h * self.dk = self.d_model
+                # size=(self.d_model, self.h * self.dk)
+                size=(self.d_model, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
 
             self.WKV = torch.normal(
                 0, stddev / np.sqrt(2),
-                size=(self.d_model, 2 * self.h * self.dk), # self.h * self.dk = self.d_model
+                # size=(self.d_model, 2 * self.h * self.dk)
+                size=(self.d_model, 2 * self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
             
             self.WO = torch.normal(
                 0, stddev,
-                size=(self.h * self.dk, self.d_model), # self.h * self.dk = self.d_model
+                # size=(self.h * self.dk, self.d_model)
+                size=(self.d_model, self.d_model), # self.h * self.dk = self.d_model
                 dtype=torch.float32,
                 device=self.device)
                         
-            self.ff = MLP(**kwargs.get("ff_config"))
-            
             if self.type == "output":
                 V = kwargs.get("vocab_size")
                 self.linear = torch.normal(
@@ -68,7 +66,21 @@ class Decoder:
                 self.linear.requires_grad_()
                 
         else:
-            pass
+            self.WQKV_masked = kwargs.get("pretrained_WQKV_masked").to(device=self.device)
+            self.WO_masked = kwargs.get("pretrained_WO_masked").to(device=self.device)
+            self.WQ = kwargs.get("pretrained_WQ").to(device=self.device)
+            self.WKV = kwargs.get("pretrained_WKV").to(device=self.device)
+            self.WO = kwargs.get("pretrained_WO").to(device=self.device)
+            if self.type == "output":
+                self.linear = kwargs.get("pretrained_linear").to(device=self.device)
+            self.d_model = self.WQKV_masked.shape[0]
+            
+        assert (self.d_model > self.h and self.d_model % self.h == 0)
+        self.dk = int(self.d_model/self.h)
+        self.sqrt_dk = np.sqrt(self.dk)
+        
+        self.ff = MLP(**kwargs.get("ff_config"))
+        self.ff.training = kwargs.get("ff_config").get("training")
 
         self.WQKV_masked.requires_grad_()
         self.WO_masked.requires_grad_()
@@ -253,7 +265,7 @@ class Decoder:
         #     ZNorm2.reshape(-1, self.d_model)
         #     ).reshape(batch_size, seq_len, self.d_model)
         ZFF = self.ff.forward(
-            ZNorm2.reshape(-1, self.d_model), training=True
+            ZNorm2.reshape(-1, self.d_model), training=self.ff.training
             ).reshape(batch_size, seq_len, self.d_model)
         
         ZNorm3 = self.add_norm(ZNorm2, ZFF, self.ln_3)
@@ -279,7 +291,7 @@ class Decoder:
 #         d_model=d_model, 
 #         num_heads=num_heads,
 #         ff_neuron_count=3,
-#         ff_nonlinearity="GELU"
+#         ff_activation="GELU"
 #     )
 #     decoder = Decoder(
 #         pretrained=False, 
@@ -287,7 +299,7 @@ class Decoder:
 #         d_model=d_model, 
 #         num_heads=num_heads,
 #         ff_neuron_count=3,
-#         ff_nonlinearity="GELU"
+#         ff_activation="GELU"
     # )
     
     # out = encoder.feed(xe)
@@ -308,7 +320,7 @@ class Decoder:
 #         d_model=d_model, 
 #         num_heads=2,
 #         ff_neuron_count=3,
-#         ff_nonlinearity="GELU"
+#         ff_activation="GELU"
 #     )
     
 #     decoder.feed(x)

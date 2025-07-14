@@ -27,8 +27,8 @@ class RNN(Network):
         else:
             self.layers = self.load_layers(kwargs.get("params"))
 
-        self.whh_nonlinearity = self.layers[0].whh_nonlinearity
-        self.why_nonlinearity = self.layers[-1].why_nonlinearity
+        self.whh_activation = self.layers[0].whh_activation
+        self.why_activation = self.layers[-1].why_activation
         
         if not self.layers:
             raise ValueError("Layers are uninitialized!")
@@ -52,8 +52,8 @@ class RNN(Network):
             pretrained_wxh=wxh,
             pretrained_whh=whh,
             pretrained_bh=bh,
-            hidden_nonlinearity=hidden_activation_fn,
-            index=index ) for (wxh, whh, bh, hidden_activation_fn, index) in list(params.values())[:-1] ] + [ 
+            hidden_activation=hidden_activation,
+            index=index ) for (wxh, whh, bh, hidden_activation, index) in list(params.values())[:-1] ] + [ 
                 
             RNNCell(
             pretrained=True, 
@@ -62,11 +62,11 @@ class RNN(Network):
             pretrained_wxh=wxh,
             pretrained_whh=whh,
             pretrained_bh=bh,
-            hidden_nonlinearity=hidden_activation_fn,
+            hidden_activation=hidden_activation,
             pretrained_why=why,
             pretrained_by=by,
-            output_nonlinearity=output_activation,
-            index=index ) for (wxh, whh, bh, hidden_activation_fn, why, by, output_activation, index) in [list(params.values())[-1]] ]
+            output_activation=output_activation,
+            index=index ) for (wxh, whh, bh, hidden_activation, why, by, output_activation, index) in [list(params.values())[-1]] ]
     
         return layers
 
@@ -74,8 +74,8 @@ class RNN(Network):
 
     def build_layers(self, architecture):
         hidden_state_neuron_counts = architecture.get("hidden_state_neuron_counts")
-        hidden_activation_fn = architecture.get("hidden_activation_fn")
-        output_activation_fn = architecture.get("output_activation_fn")
+        hidden_activation = architecture.get("hidden_activation")
+        output_activation = architecture.get("output_activation")
         output_feature_count = architecture.get("output_feature_count")
         num_layers = len(hidden_state_neuron_counts)
         input_feature_count = architecture.get("input_feature_count")
@@ -90,7 +90,7 @@ class RNN(Network):
             wxh_neuron_count=hidden_state_neuron_counts[i],
             whh_input_count=hidden_state_neuron_counts[i],
             whh_neuron_count=hidden_state_neuron_counts[i],
-            hidden_nonlinearity=hidden_activation_fn,
+            hidden_activation=hidden_activation,
             index=i+1 ) for i in range(num_layers-1) ] + [ 
                     
             RNNCell(
@@ -101,10 +101,10 @@ class RNN(Network):
             wxh_neuron_count=hidden_state_neuron_counts[-1],
             whh_input_count=hidden_state_neuron_counts[-1],
             whh_neuron_count=hidden_state_neuron_counts[-1],
-            hidden_nonlinearity=hidden_activation_fn,
+            hidden_activation=hidden_activation,
             why_input_count=hidden_state_neuron_counts[-1],
             why_neuron_count=output_feature_count,
-            output_nonlinearity=output_activation_fn,
+            output_activation=output_activation,
             index=num_layers ) 
         ]
         
@@ -118,10 +118,10 @@ class RNN(Network):
             #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
             torch.save(layer.wxh, f"{save_fpath}/layer_{layer.index}_wxh.pth")
-            torch.save(layer.whh, f"{save_fpath}/layer_{layer.index}_whh_{layer.whh_nonlinearity}.pth")
+            torch.save(layer.whh, f"{save_fpath}/layer_{layer.index}_whh_{layer.whh_activation}.pth")
             torch.save(layer.bh, f"{save_fpath}/layer_{layer.index}_bh.pth")
             if layer.type == "output":
-                torch.save(layer.why, f"{save_fpath}/layer_{layer.index}_why_{layer.why_nonlinearity}.pth")
+                torch.save(layer.why, f"{save_fpath}/layer_{layer.index}_why_{layer.why_activation}.pth")
                 torch.save(layer.by, f"{save_fpath}/layer_{layer.index}_by.pth")
 
 
@@ -169,15 +169,15 @@ class RNN(Network):
             ht_l = [None] * self.num_layers
             ht_l[0] = activate(
                 ht1_l[0] @ whh_l[0] + bh_l[0] + 
-                x @ wxh_l[0], self.whh_nonlinearity)
+                x @ wxh_l[0], self.whh_activation)
 
             for i in range(1, self.num_layers):
                 ht_l[i] = activate(
                     ht1_l[i] @ whh_l[i] + bh_l[i] +
-                    ht_l[i-1] @ wxh_l[i], self.whh_nonlinearity)
+                    ht_l[i-1] @ wxh_l[i], self.whh_activation)
 
             Y[:, t, :] = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                ht_l[-1] @ why + by, self.why_activation)
             
             ht1_l = ht_l
         
@@ -219,16 +219,16 @@ class RNN(Network):
             ht_l = [None] * self.num_layers
             ht_l[0] = activate(
                 ht1_l[0] @ whh_l[0] + bh_l[0] + 
-                x @ wxh_l[0], self.whh_nonlinearity)
+                x @ wxh_l[0], self.whh_activation)
 
             # for i in range(1, len(ht_l)):
             for i in range(1, self.num_layers):
                 ht_l[i] = activate(
                     ht1_l[i] @ whh_l[i] + bh_l[i] +
-                    ht_l[i-1] @ wxh_l[i], self.whh_nonlinearity)
+                    ht_l[i-1] @ wxh_l[i], self.whh_activation)
 
             y = activate( 
-                ht_l[-1] @ why + by, self.why_nonlinearity)
+                ht_l[-1] @ why + by, self.why_activation)
             Y[:, t, :] = y
             # print(y.shape)
 

@@ -1,9 +1,9 @@
 architecture:
-  hidden_activation_fn: tanh
+  hidden_activation: tanh
   hidden_state_neuron_counts:
   - 64
   input_feature_count: 100
-  output_activation_fn: reLU
+  output_activation: reLU
   output_feature_count: 100
 hyperparameters:
   batch_size: 32

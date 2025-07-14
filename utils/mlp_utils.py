@@ -29,7 +29,7 @@ def fetch_mlp_params_from_file(device, directory):
         index = match.group(1)
         activation = match.group(2)
 
-        params.update({f"Layer {index}": [weights, biases, activation, index] })
+        params.update({f"layer_{index}": [weights, biases, activation, index] })
 
     return params
 

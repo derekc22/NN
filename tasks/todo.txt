@@ -26,11 +26,15 @@
 
 06/21/2025
     - rename 'curr_input' to just 'X' in the training loop for all models
-    - (DONE: 06/23/2025) rename convolutional.py and CNNLayer to something like cnn_layer.py and CNNLayer, respectively since (obviously) not all layer in CNNs are convolutional. This will aid readability and clarity.
+    - (DONE: 06/23/2025) rename convolutional.py and CNNLayer to something like layer.py and CNNLayer, respectively since (obviously) not all layer in CNNs are convolutional. This will aid readability and clarity.
     - add custom implementations of batchNorm and layerNorm to src/functions.py
 
 06/25/2025
     - refactor rnn and lstm models to maintain a consistent structure with the mlp, cnn, and transformer models (where much of the tensor manipulation is done within the elementary cell classes rather than in the model class itself)
 
 06/28/2025
-    - possibly add assert to cnn_layer.py to ensure that kernel size + stride divides evenly into the input size
+    - possibly add assert to layer.py to ensure that kernel size + stride divides evenly into the input size
+
+07/13/2025
+    - consider adding biases to transformer model (currently only weights are present)
+    -- for example, add bias to WQKV and WO weight matrices in both encoder and decoder

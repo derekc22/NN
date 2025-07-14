@@ -65,7 +65,7 @@ def fetch_rnn_params_from_file(device, directory):
         index = match.group(1)
         hidden_activation = match.group(2)
 
-        params.update({f"Layer {index}": [wxh, whh, bh, hidden_activation, index] })
+        params.update({f"layer_{index}": [wxh, whh, bh, hidden_activation, index] })
     
 
     why_pattern = "layer_*_why_*.pth"  # Pattern to match
@@ -85,7 +85,7 @@ def fetch_rnn_params_from_file(device, directory):
     output_activation = match.group(2)
 
     output_params =  [why, by, output_activation]
-    params[f"Layer {index}"][4:4] = output_params
+    params[f"layer_{index}"][4:4] = output_params
 
     
     return params

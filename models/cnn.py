@@ -1,7 +1,7 @@
 import os
 from src.network import Network
 from models.mlp import MLP
-from src.cnn_layer import CNNLayer
+from src.layer import CNNLayer
 from typing_extensions import override
 import torch
 
@@ -41,9 +41,9 @@ class CNN(Network):
             type=layer_type, 
             pretrained_kernels=kernels, 
             pretrained_biases=biases, 
-            nonlinearity=nonlinearity,
+            activation=activation,
             kernel_stride=stride, 
-            index=index) for (layer_type, kernels, biases, nonlinearity, stride, index) in params.values()
+            index=index) for (layer_type, kernels, biases, activation, stride, index) in params.values()
         ]
 
         return layers
@@ -91,7 +91,7 @@ class CNN(Network):
             filter_count=filter_counts[i],
             kernel_shape=kernel_shapes[i], 
             kernel_stride=kernel_strides[i], 
-            nonlinearity=activation_fns[i], 
+            activation=activation_fns[i], 
             index=i+1) for i in range(num_layers)
         ]
 
@@ -103,10 +103,9 @@ class CNN(Network):
         save_fpath = f"{self.save_fpath}/{qualifier}"
         os.makedirs(save_fpath, exist_ok=True)
         for layer in self.layers:
-            #layer.index = "0" + str(layer.index) if layer.index < 10 else layer.index
             layer.index = str(layer.index).zfill(2)
-            torch.save(layer.kernels, f"{save_fpath}/cnn_layer_{layer.index}_kernels_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
-            torch.save(layer.biases, f"{save_fpath}/cnn_layer_{layer.index}_biases_{layer.nonlinearity}_{layer.type}_{layer.kernel_stride}.pth")
+            torch.save(layer.kernels, f"{save_fpath}/layer_{layer.index}_kernels_{layer.activation}_{layer.type}_{layer.kernel_stride}.pth")
+            torch.save(layer.biases, f"{save_fpath}/layer_{layer.index}_biases_{layer.activation}_{layer.type}_{layer.kernel_stride}.pth")
 
         self.MLP.save_parameters()
 

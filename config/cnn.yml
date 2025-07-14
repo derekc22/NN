@@ -1,6 +1,6 @@
 architecture:
   cnn_architecture:
-    activation_fns:
+    activations:
     - leakyReLU
     - none
     - leakyReLU
@@ -34,7 +34,7 @@ architecture:
     - convolutional
     - max_pool
   mlp_architecture:
-    activation_fns:
+    activations:
     - sigmoid
     neuron_counts:
     - 1

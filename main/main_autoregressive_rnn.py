@@ -91,7 +91,6 @@ else:
     data_batch = X[:, :-1, :]
     label_batch = X[:, 1:, :]
 
-
     rnn = RNN(
         pretrained=True,
         training=False,

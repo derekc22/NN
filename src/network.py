@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_, clip_grad_value_
 import torch.nn.functional as F
-# from src.encoder import Encoder
-# from src.decoder import Decoder
+
 
 
 class Network:
@@ -149,7 +148,7 @@ class Network:
             epoch_plt.append(epoch)
             loss_plt.append(loss.item())
             print(f"epoch = {epoch+1}, loss = {loss}")
-            print(f"__________________________________________")
+            print("__________________________________________")
             
 
         if save_params:

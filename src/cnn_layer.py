@@ -14,7 +14,7 @@ class CNNLayer:
         # self.is_conv_layer = is_conv_layer
         self.type = kwargs.get("type")
         self.padding = 0
-        self.nonlinearity = kwargs.get("nonlinearity")
+        self.activation = kwargs.get("activation")
         self.index = int(kwargs.get("index"))
         self.kernel_stride = int(kwargs.get("kernel_stride"))
 
@@ -63,7 +63,7 @@ class CNNLayer:
     def __repr__(self):
 
         return (f"__________________________________________\n"
-                f"CNN Layer {self.index}\nKernels:\n{self.kernels}\nKernel Size: {self.kernels.size()}\nBiases:\n{self.biases}\nBias Size: {self.biases.size() if self.biases is not None else None}\nActivation: {self.nonlinearity}\n"
+                f"CNN Layer {self.index}\nKernels:\n{self.kernels}\nKernel Size: {self.kernels.size()}\nBiases:\n{self.biases}\nBias Size: {self.biases.size() if self.biases is not None else None}\nActivation: {self.activation}\n"
                 f"__________________________________________")
 
 
@@ -111,7 +111,7 @@ class CNNLayer:
             # feature_map = feature_map / normalizer
             ####### TESTING THIS ############################
 
-            feature_map = activate(feature_map, self.nonlinearity)
+            feature_map = activate(feature_map, self.activation)
 
 
         # feature_map = feature_map.to(self.device)
