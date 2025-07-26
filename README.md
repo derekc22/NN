@@ -11,7 +11,7 @@ This project provides implementations of different neural network models includi
 - Recurrent Neural Network (RNN)
 - Long Short-Term Memory (LSTM)
 - Transformer [Work in Progress]
-- PINN [Planned]
+- Physics-informed Neural Network (PINN) [Planned]
 
 ## Models
 
