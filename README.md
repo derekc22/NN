@@ -27,7 +27,7 @@ This project provides implementations of different neural network models includi
 - **Use Cases**: Image recognition, object detection, medical imaging analysis
 - **Example**: `python main/main_cnn.py --mode train` (pet image classification)
 
-### Recurrent Neural Network (RNN)
+### Deep Recurrent Neural Network (RNN)
 - **Architecture**: Sequential processing network with memory capabilities
 - **Features**: Stateful/stateless training, autoregressive capabilities, temporal dependency modeling
 - **Use Cases**: Text generation, stock price prediction, sensor data analysis
