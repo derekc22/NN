@@ -8,7 +8,7 @@ This project provides implementations of different neural network models includi
 
 - Multi-Layer Perceptron (MLP)
 - Convolutional Neural Network (CNN)
-- Recurrent Neural Network (RNN)
+- Deep Recurrent Neural Network (RNN)
 - Long Short-Term Memory (LSTM)
 - Transformer [Work in Progress]
 - Physics-informed Neural Network (PINN) [Planned]
@@ -34,7 +34,7 @@ This project provides implementations of different neural network models includi
 - **Example**: `python main/main_rnn.py --mode train` (sine wave prediction)
 
 ### Long Short-Term Memory (LSTM)
-- **Architecture**: RNN variant with gating mechanisms for long-range dependencies
+- **Architecture**: LSTM with gating mechanisms for long-range dependencies
 - **Features**: Forget/input/output gates, autoregressive capabilities, improved gradient flow
 - **Use Cases**: Language modeling, speech recognition, anomaly detection in time series
 - **Example**: `python main/main_auto_regressive_lstm.py --mode train` (sine wave prediction)
