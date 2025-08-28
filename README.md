@@ -8,10 +8,12 @@ This project provides implementations of different neural network models includi
 
 - Multi-Layer Perceptron (MLP)
 - Convolutional Neural Network (CNN)
-- Deep Recurrent Neural Network (RNN)
+- Deep Recurrent Neural Network (Deep RNN)
 - Long Short-Term Memory (LSTM)
 - Transformer [Work in Progress]
 - Physics-informed Neural Network (PINN) [Planned]
+- Residual Network (ResNet) [Planned]
+- Vision Transformer (ViT) [Planned]
 
 ## Models
 
