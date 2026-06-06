@@ -15,11 +15,6 @@ Neural network models implemented from scratch in Python
   pip install -r requirements.txt
   ```
 
-- Ensure shell scripts are executable
-  ```bash
-  chmod +x run.sh train.sh test.sh
-  ```
-
 ## Models
 
 - Multi-layer perceptron
